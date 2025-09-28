@@ -1,98 +1,355 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# booking-api-gateway — README (chi tiết, dễ hiểu)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> **Mục tiêu**: API Gateway (NestJS) làm *entry point* cho hệ thống Booking.
+> Chức năng chính: xác thực JWT (RS256), proxy request tới các microservice (auth, booking, user, payment), logging/trace, rate-limit, retry + circuit-breaker, health & metrics.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Công nghệ chính: NestJS (Node.js framework).
+Dùng @nestjs/axios để gọi sang các service con (auth-service, booking-service, payment-service).
+Dùng @nestjs/config để lấy config (URL của từng service).
+Tổ chức controller/proxy theo từng domain (auth.proxy, booking.proxy, payment.proxy).
+Nó giống 1 API Gateway custom chứ chưa phải Kong hay Traefik gì cả.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Mục lục
 
-## Project setup
+1. Tổng quan & kiến trúc
+2. Cài đặt nhanh (dev + docker)
+3. Biến môi trường (`.env`) mẫu
+4. Cấu trúc file & mô tả ngắn từng file quan trọng
+5. Chạy & test bằng Postman / curl (register → login → gọi API bảo vệ)
+6. Security notes (RSA keys, secrets)
+7. Production checklist / best practices
+8. Troubleshooting phổ biến
 
-```bash
-$ npm install
+---
+
+# 1. Tổng quan & kiến trúc
+
+Gateway này được thiết kế theo phong cách enterprise-light:
+
+* **Xác thực**: Verify Access Token (RS256) bằng `public.pem` từ `auth-service` → Gateway không gọi auth-service để validate mỗi request (hiệu năng cao).
+* **Proxy/Forward**: Tách controller theo domain: `/auth/*`, `/bookings/*`, `/payment/*`, `/users/*`. Mỗi controller forward request sang upstream tương ứng.
+* **Resilience**: `axios` + `axios-retry` cho retry, `opossum` (circuit breaker) cho upstream calls.
+* **Cross-cutting**: correlation-id, secure headers, structured logging (JSON), global exception filter.
+* **Rate limiting**: via `@nestjs/throttler` (cấu hình TTL + limit).
+* **Observability**: healthz (`/healthz`) và placeholder metrics (`/metrics`) (có thể mở rộng `prom-client`).
+
+Luồng cơ bản (ví dụ `/bookings/create`):
+
+```
+Client -> API Gateway (verify JWT) -> upstream.booking-service -> Gateway copy response -> Client
 ```
 
-## Compile and run the project
+---
+
+# 2. Cài đặt nhanh
+
+### Yêu cầu
+
+* Node.js 18+ (dev)
+* npm / yarn
+* (Tùy) Docker & docker-compose
+
+### Clone & cài deps
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <repo>/booking-api-gateway
+cd booking-api-gateway
+npm install
 ```
 
-## Run tests
+### Chạy local (dev)
+
+Giả sử bạn chạy `auth-service` bằng `npm run dev` tại `http://localhost:4000`:
+
+* Tạo `.env` theo bước tiếp theo.
+* Start gateway (dev):
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev    # or ts-node -r tsconfig-paths/register src/main.ts
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Build & run (production-ish)
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run build
+npm start             # chạy dist/main.js
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Docker (quick demo with mocks as provided)
 
-## Resources
+(Nếu repo có `docker-compose.yml` demo)
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+docker compose up --build
+# gateway: http://localhost:4000 (ví dụ), mocks: auth, booking...
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+# 3. `.env.example` (mẫu)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```env
+# Gateway
+PORT=4000
 
-## Stay in touch
+# Upstream services (cấu hình theo nơi bạn chạy auth/booking)
+AUTH_SERVICE_URL=http://localhost:4000   # nếu auth-service chạy local:4000
+BOOKING_SERVICE_URL=http://localhost:4001
+USER_SERVICE_URL=http://localhost:4002
+PAYMENT_SERVICE_URL=http://localhost:4003
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# JWT public key (path to pem) - gateway dùng để verify RS256 tokens
+JWT_PUBLIC_KEY_PATH=./keys/public.pem
 
-## License
+# Rate limit
+RATE_LIMIT_TTL=60
+RATE_LIMIT_REQ=100
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Circuit breaker / axios-retry optional params
+AXIOS_TIMEOUT_MS=10000
+AXIOS_RETRIES=2
+CIRCUIT_RESET_MS=30000
+```
+
+> **Lưu ý**: nếu bạn mount nội dung public key trực tiếp (ví dụ trong Docker secrets), có thể set `JWT_PUBLIC_KEY` env thay vì file path.
+
+---
+
+# 4. Cấu trúc file & mô tả ngắn
+
+```
+src/
+├─ main.ts                         # bootstrap app (cookieParser, global interceptors)
+├─ app.module.ts                   # imports, middlewares, providers
+├─ config/
+│   └─ config.service.ts           # wrapper lấy config từ env
+├─ utils/
+│   └─ publicKey.util.ts           # load public key (env or file)
+├─ common/
+│   ├─ middleware/
+│   │   ├─ correlation-id.middleware.ts
+│   │   └─ secure-headers.middleware.ts
+│   ├─ guards/
+│   │   └─ jwt.guard.ts            # verify RS256 token, attach req.user, set x-user-* headers
+│   ├─ interceptors/
+│   │   └─ logging.interceptor.ts  # structured logs + timing
+│   └─ filters/
+│       └─ http-exception.filter.ts # uniform error format
+├─ services/
+│   └─ upstream.service.ts         # axios clients + axios-retry + opossum (circuit breaker)
+└─ proxy/
+    ├─ auth.proxy.controller.ts
+    ├─ booking.proxy.controller.ts
+    ├─ payment.proxy.controller.ts
+    └─ user.proxy.controller.ts
+```
+
+**Mô tả ngắn những file quan trọng**
+
+* `jwt.guard.ts` — đọc `Authorization` header, verify token bằng `public.pem` (RS256); nếu valid attach `req.user` và headers như `x-user-id` để upstream sử dụng.
+* `upstream.service.ts` — tạo axios client cho mỗi upstream, bật retry và circuit breaker, expose `forwardRequest(serviceName, path, method, body, headers)` để controller gọi.
+* `proxy/*` — mỗi controller gọi `upstream.forwardRequest('auth'|'booking'...)`. Public routes (auth/register/login) không cần `JwtGuard`; protected routes (booking/payment/user) gắn `@UseGuards(JwtGuard)`.
+* `correlation-id` — gắn header `x-correlation-id` nếu chưa có, set response header để trace.
+* `logging.interceptor` — log JSON object: event request/response, correlation id, status, duration.
+
+---
+
+# 5. Cách test bằng Postman (Register → Login → Gọi API bảo vệ) — qua Gateway
+
+Giả sử:
+
+* Gateway: `http://localhost:3000`
+* Auth service: `http://localhost:4000` (đã chạy `npm run dev`)
+
+### 5.1. Register (qua Gateway)
+
+**Request**
+
+```
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "user1@example.com",
+  "password": "123456",
+  "fullName": "User One"
+}
+```
+
+**Expected**: status `201`/`200` with user info (tùy implement auth-service). Gateway sẽ forward sang `AUTH_SERVICE_URL + /auth/register`.
+
+---
+
+### 5.2. Login (qua Gateway)
+
+**Request**
+
+```
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "user1@example.com",
+  "password": "123456"
+}
+```
+
+**Expected response**
+
+```json
+{
+  "accessToken": "<JWT_ACCESS_TOKEN>",
+  "refreshToken": "<REFRESH_TOKEN>"
+}
+```
+
+* Lưu `accessToken` vào Postman environment `{{accessToken}}`.
+
+---
+
+### 5.3. Gọi API bảo vệ (ví dụ tạo booking)
+
+**Request**
+
+```
+POST http://localhost:3000/bookings/create
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roomId": "room-uuid",
+  "from": "2025-10-01",
+  "to": "2025-10-05"
+}
+```
+
+**Flow**:
+
+* Gateway `JwtGuard` verify token (public key). Nếu hợp lệ, attach `req.user` và thêm headers `x-user-id`, `x-user-email`.
+* Gateway forward request sang `BOOKING_SERVICE_URL + /bookings/create`.
+* Booking service nhận header `x-user-id` và xử lý.
+
+---
+
+### 5.4. Refresh token (qua Gateway)
+
+**Request**
+
+```
+POST http://localhost:3000/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<REFRESH_TOKEN>" }
+```
+
+Gateway forward sang auth-service refresh endpoint; auth-service thực hiện rotation + trả access + refresh mới.
+
+---
+
+# 6. Security notes & RSA keys
+
+### Tạo key (dev)
+
+Chạy:
+
+```bash
+mkdir -p keys
+openssl genrsa -out keys/private.pem 2048
+openssl rsa -in keys/private.pem -pubout -out keys/public.pem
+```
+
+* **private.pem**: *không* commit vào repo — chỉ auth-service dùng để sign JWT.
+* **public.pem**: copy/mount vào API Gateway (đường dẫn `JWT_PUBLIC_KEY_PATH`) để verify token.
+
+### Production
+
+* Lưu keys & secrets ở Secret Manager (AWS Secrets Manager, Vault, Kubernetes Secrets), không lưu trong repo.
+* Dùng RS256 (asymmetric) thay vì HS256 cho access tokens trong microservices lớn.
+
+---
+
+# 7. Production checklist / Best practices
+
+* **Secrets**: store private key + DB passwords in Vault / Cloud Secrets.
+* **TLS**: terminate TLS at Load Balancer / ingress; enforce HTTPS.
+* **Rate limiting**: use Redis-backed limiter for multi-instance gateway.
+* **Service discovery**: use k8s Service DNS or Consul for dynamic upstream addresses.
+* **Tracing**: add OpenTelemetry / Jaeger and propagate trace headers (`traceparent`).
+* **Metrics**: instrument Prometheus metrics: request_count, latency histogram, circuit breaker state, upstream successes/errors.
+* **Logging**: structured logs (JSON) with correlation-id; ship to ELK/EFK.
+* **Health/readiness**: gateway readiness should check (optionally) critical upstreams.
+* **Scaling**: run multiple gateway replicas behind LB; use sticky sessions only if necessary.
+* **Api versioning**: organize routes with `/v1/` `/v2/` if you need backward compatibility.
+
+---
+
+# 8. Troubleshooting (phổ biến)
+
+### 1) Nest error: `Nest can't resolve dependencies of the UpstreamService (HttpService, ?). Please make sure that the argument ConfigService...`
+
+**Nguyên nhân**: `ConfigModule` chưa import hoặc không isGlobal.
+**Fix**: trong `app.module.ts`, import:
+
+```ts
+import { ConfigModule } from '@nestjs/config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    HttpModule, // nếu dùng HttpService
+    ...
+  ],
+})
+export class AppModule {}
+```
+
+### 2) `Cannot load public key` / `JWT verify failed`
+
+* Kiểm tra `JWT_PUBLIC_KEY_PATH` đúng file `public.pem` (đúng nội dung PEM).
+* Nếu chạy docker, mount `keys` vào container (`volumes: - ./keys:/app/keys:ro`).
+
+### 3) Gateway không forward hoặc lỗi CORS
+
+* Kiểm tra `UpstreamService` base URLs trong `.env`.
+* Nếu Upstream trả redirect → ensure `followRedirect` hoặc set `maxRedirects` cho axios.
+
+### 4) 502 / upstream unavailable (circuit breaker open)
+
+* Kiểm tra logs: opossum sẽ log `circuit opened`.
+* Kiểm tra upstream service có chạy, response time, hoặc lỗi. Tăng `resetTimeout`/`timeout` nếu cần.
+
+---
+
+# 9. Một số config gợi ý để tuning
+
+* `AXIOS_TIMEOUT_MS` — timeout request upstream (ms)
+* `AXIOS_RETRIES` — số lần retry (network/idempotent)
+* `CIRCUIT_RESET_MS` — thời gian opossum reset (ms)
+* `RATE_LIMIT_TTL`, `RATE_LIMIT_REQ` — điều chỉnh theo traffic
+
+---
+
+# 10. Quick reference — các endpoint mặc định (gateway)
+
+* `GET  /healthz` → health check
+* `GET  /metrics` → Prometheus metrics (nếu bật)
+* `POST /auth/register` → forwarded to auth-service
+* `POST /auth/login` → forwarded to auth-service
+* `POST /auth/refresh` → forwarded to auth-service
+* `ALL  /bookings/*` → forwarded to booking-service (protected by JwtGuard)
+* `ALL  /payment/*` → forwarded to payment-service (protected)
+* `ALL  /users/*` → forwarded to user-service (protected)
+
+---
+
+## Kết
+
+README này nên đủ để bạn làm việc: chạy gateway, map upstream đúng, test register/login qua gateway bằng Postman, và biết các điểm cần chú ý khi deploy vào production.
+
+Muốn mình:
+
+* **(A)** paste toàn bộ file `auth.proxy.controller.ts` / `booking.proxy.controller.ts` / `upstream.service.ts` + `app.module.ts` hoàn chỉnh ready-to-run?
+* **(B)** tạo sẵn Postman Collection JSON cho flow Register → Login → Call Booking qua Gateway?
+  Hãy chọn 1 (mình sẽ dán code/collection ngay).
