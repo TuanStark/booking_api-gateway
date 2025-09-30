@@ -10,11 +10,15 @@ export class AppConfigService {
     return process.env.BOOKING_SERVICE_URL || 'http://localhost:3001';
   }
   get userServiceUrl(): string {
-    return process.env.USER_SERVICE_URL || 'http://localhost:3002';
+    return process.env.USER_SERVICE_URL || 'http://localhost:3003';
+  }
+  get buildingServiceurl(): string {
+    return process.env.BUILDING_SERVICE_URL || 'http://localhost:3002';
   }
   get publicKeyPath(): string {
     return process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem';
   }
+  
   get port(): number {
     return Number(process.env.PORT || 4000);
   }

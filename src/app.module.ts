@@ -9,6 +9,7 @@ import { AuthProxyController } from './proxy/auth.proxy.controller';
 import { BookingProxyController } from './proxy/booking.proxy.controller';
 import { PaymentProxyController } from './proxy/payment.proxy.controller';
 import { ConfigModule } from '@nestjs/config';
+import { BuildingProxyController } from './proxy/building.proxy.controller';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true, // 👈 đảm bảo ConfigService có thể dùng ở mọi nơi
     }),
   ],
-  controllers: [AuthProxyController, BookingProxyController, PaymentProxyController],
+  controllers: [AuthProxyController, BookingProxyController, PaymentProxyController, BuildingProxyController],
   providers: [AppConfigService, UpstreamService],
 })
 export class AppModule implements NestModule {
