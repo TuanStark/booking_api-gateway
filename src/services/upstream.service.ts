@@ -29,6 +29,8 @@ export class UpstreamService {
         return this.configService.get<string>('NOTIFICATION_SERVICE_URL') || 'http://localhost:4003';
       case 'buildings':
         return this.configService.get<string>('BUILDING_SERVICE_URL') || 'http://localhost:3002';
+      case 'rooms':
+        return this.configService.get<string>('ROOM_SERVICE_URL') || 'http://localhost:3003';
       default:
         throw new Error(`Unknown service: ${service}`);
     }
@@ -55,10 +57,28 @@ export class UpstreamService {
       ...headers,
     };
 
-    // ✅ Nếu multipart/form-data → chuyển tiếp stream gốc, giữ nguyên boundary
+    // ✅ Nếu multipart/form-data → rebuild FormData từ req.body và req.files
     if (contentType && contentType.includes('multipart/form-data')) {
-      data = req;
-      headers = forwardedHeaders;
+      const form = new FormData();
+      
+      // Append body fields
+      for (const field in req.body) {
+        form.append(field, req.body[field]);
+      }
+      
+      // Append files
+      if (req.files) {
+        const files = Array.isArray(req.files) ? req.files : [req.files];
+        for (const file of files) {
+          form.append(file.fieldname, Readable.from(file.buffer), {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
+        }
+      }
+      
+      data = form;
+      headers = { ...forwardedHeaders, ...form.getHeaders() };
     } else {
       // ✅ Nếu JSON
       data = req.body;

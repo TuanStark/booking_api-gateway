@@ -15,6 +15,9 @@ export class AppConfigService {
   get buildingServiceurl(): string {
     return process.env.BUILDING_SERVICE_URL || 'http://localhost:3002';
   }
+  get roomServiceUrl(): string {
+    return process.env.ROOM_SERVICE_URL || 'http://localhost:3003';
+  }
   get publicKeyPath(): string {
     return process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem';
   }
