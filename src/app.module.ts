@@ -11,10 +11,16 @@ import { PaymentProxyController } from './proxy/payment.proxy.controller';
 import { ConfigModule } from '@nestjs/config';
 import { BuildingProxyController } from './proxy/building.proxy.controller';
 import { RoomProxyController } from './proxy/room.proxy.controller';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
     HttpModule,
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    }),
     ThrottlerModule.forRoot([{
       ttl: Number(process.env.RATE_LIMIT_TTL || 60) * 1000, // Convert to milliseconds
       limit: Number(process.env.RATE_LIMIT_REQ || 100),

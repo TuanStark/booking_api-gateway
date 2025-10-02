@@ -4,10 +4,11 @@ import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { LoggingInterceptor } from '../common/interceptors/logging.interceptor';
 import { AllExceptionsFilter } from '../common/filters/http-exception.filter';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('buildings')
 // @UseGuards(JwtAuthGuard)
-@UseInterceptors(LoggingInterceptor)
+@UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class BuildingProxyController {
   constructor(private readonly upstream: UpstreamService) {}
