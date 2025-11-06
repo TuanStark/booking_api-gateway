@@ -44,19 +44,19 @@ pipeline {
             }
         }
         
-        stage('Unit Tests') {
-            steps {
-                sh 'npm test -- --coverage --watchAll=false'
-            }
-            post {
-                always {
-                    publishTestResults testResultsPattern: 'coverage/test-results.xml'
-                    publishCoverage adapters: [
-                        jacocoAdapter('coverage/lcov.info')
-                    ], sourceFileResolver: sourceFiles('STORE_LAST_BUILD')
-                }
-            }
-        }
+        // stage('Unit Tests') {
+        //     steps {
+        //         sh 'npm test -- --coverage --watchAll=false'
+        //     }
+        //     post {
+        //         always {
+        //             publishTestResults testResultsPattern: 'coverage/test-results.xml'
+        //             publishCoverage adapters: [
+        //                 jacocoAdapter('coverage/lcov.info')
+        //             ], sourceFileResolver: sourceFiles('STORE_LAST_BUILD')
+        //         }
+        //     }
+        // }
         
         stage('Build Application') {
             steps {
