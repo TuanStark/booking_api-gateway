@@ -121,10 +121,17 @@ pipeline {
                             # Push cả 2 tags (Docker Hub sẽ tự tạo repo nếu chưa tồn tại)
                             echo "📤 Pushing image: \${DOCKER_HUB_IMAGE}:${DOCKER_TAG}"
                             docker push \${DOCKER_HUB_IMAGE}:${DOCKER_TAG} || {
-                                echo "❌ Push failed. Please check:"
-                                echo "   1. Username '\$DOCKER_USER' is correct"
-                                echo "   2. You have push permissions"
-                                echo "   3. Network connection is stable"
+                                echo "❌ Push failed with 'insufficient_scope' error!"
+                                echo ""
+                                echo "🔍 This usually means your Access Token doesn't have write permissions."
+                                echo ""
+                                echo "✅ Solution:"
+                                echo "   1. Go to: https://hub.docker.com/settings/security"
+                                echo "   2. Create a NEW Access Token with 'Read, Write & Delete' permissions"
+                                echo "   3. Update Jenkins credentials '${DOCKER_CREDENTIALS_ID}' with the new token"
+                                echo "   4. Make sure to use Access Token (not password) in credentials"
+                                echo ""
+                                echo "📝 Current repository: \${DOCKER_HUB_IMAGE}"
                                 exit 1
                             }
                             
