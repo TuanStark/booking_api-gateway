@@ -67,7 +67,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f ./Dockerfile .")
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f ./Dockerfile ."
                 }
             }
         }
@@ -87,7 +87,10 @@ pipeline {
                     def dockerHubImage = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:${DOCKER_TAG}"
                     def dockerHubImageLatest = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:latest"
                     
-                    docker.withRegistry("${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
+                    // Login to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin ${DOCKER_REGISTRY}"
+                        
                         // Tag image với Docker Hub username
                         sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${dockerHubImage}"
                         sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${dockerHubImageLatest}"
@@ -95,6 +98,9 @@ pipeline {
                         // Push cả 2 tags
                         sh "docker push ${dockerHubImage}"
                         sh "docker push ${dockerHubImageLatest}"
+                        
+                        // Logout
+                        sh "docker logout ${DOCKER_REGISTRY}"
                     }
                 }
             }
