@@ -27,105 +27,52 @@ pipeline {
                         script: "git rev-parse --short HEAD",
                         returnStdout: true
                     ).trim()
-                    
-                    // Kiểm tra thay đổi (chỉ trên các branch khác main)
-                    if (env.BRANCH_NAME != 'main') {
-                        def changedFiles = sh(
-                            script: """
-                                if [ -n "\${GIT_PREVIOUS_SUCCESSFUL_COMMIT}" ]; then
-                                    git diff --name-only \${GIT_PREVIOUS_SUCCESSFUL_COMMIT} \${GIT_COMMIT}
-                                else
-                                    git diff --name-only HEAD~1 HEAD
-                                fi
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        
-                        def serviceChanged = changedFiles.contains("services/${SERVICE_NAME}/")
-                        def sharedChanged = changedFiles.contains("shared/")
-                        
-                        if (!serviceChanged && !sharedChanged && changedFiles) {
-                            echo "No changes detected in ${SERVICE_NAME} or shared/, skipping build"
-                            env.SKIP_BUILD = 'true'
-                        } else {
-                            env.SKIP_BUILD = 'false'
-                        }
-                    } else {
-                        env.SKIP_BUILD = 'false'
-                    }
                 }
             }
         }
         
         stage('Install Dependencies') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
-                dir("services/${SERVICE_NAME}") {
-                    sh 'npm ci'
-                }
+                sh 'npm ci'
             }
         }
         
         stage('Lint & Format') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
-                dir("services/${SERVICE_NAME}") {
-                    sh 'npm run lint'
-                    sh 'npm run format'
-                }
+                sh 'npm run lint'
+                sh 'npm run format'
             }
         }
         
         stage('Unit Tests') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
-                dir("services/${SERVICE_NAME}") {
-                    sh 'npm test -- --coverage --watchAll=false'
-                }
+                sh 'npm test -- --coverage --watchAll=false'
             }
             post {
                 always {
-                    publishTestResults testResultsPattern: 'services/api-gateway/coverage/test-results.xml'
+                    publishTestResults testResultsPattern: 'coverage/test-results.xml'
                     publishCoverage adapters: [
-                        jacocoAdapter('services/api-gateway/coverage/lcov.info')
+                        jacocoAdapter('coverage/lcov.info')
                     ], sourceFileResolver: sourceFiles('STORE_LAST_BUILD')
                 }
             }
         }
         
         stage('Build Application') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
-                dir("services/${SERVICE_NAME}") {
-                    sh 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
         
-
         stage('Build Docker Image') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f services/${SERVICE_NAME}/Dockerfile services/${SERVICE_NAME}")
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f ./Dockerfile .")
                 }
             }
         }
         
         stage('Security Scan') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
                 script {
                     sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG}"
@@ -134,9 +81,6 @@ pipeline {
         }
 
         stage('Push Docker Image') {
-            when {
-                expression { env.SKIP_BUILD != 'true' }
-            }
             steps {
                 script {
                     // Image name trên Docker Hub: username/repo-name:tag
@@ -155,6 +99,7 @@ pipeline {
                 }
             }
         }
+        
         // TODO: Uncomment when Docker registry and infrastructure are ready
         /*
         stage('Deploy to Staging') {
