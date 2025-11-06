@@ -103,6 +103,14 @@ pipeline {
                         // DOCKER_REGISTRY được expand từ environment variable
                         // Lưu ý: Đảm bảo credentials ID 'docker-credentials' trong Jenkins có đúng username và password của Docker Hub
                         sh """
+                            # TODO: XÓA CÁC DÒNG DEBUG NÀY SAU KHI KIỂM TRA XONG!
+                            echo "🔍 DEBUG: Checking credentials..."
+                            echo "Username: \$DOCKER_USER"
+                            echo "Password: \$DOCKER_PASS"
+                            echo "Password length: \${#DOCKER_PASS} characters"
+                            echo "Registry: ${DOCKER_REGISTRY}"
+                            echo "---"
+                            
                             set +x  # Ẩn command để tránh expose password trong logs
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin ${DOCKER_REGISTRY} || {
                                 echo "❌ Docker login failed. Please check:"
