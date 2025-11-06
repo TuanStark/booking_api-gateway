@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  gateway:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      AUTH_SERVICE_URL: "http://auth:3001"
+      BOOKING_SERVICE_URL: "http://booking:3002"
+      USER_SERVICE_URL: "http://user:3003"
+      JWT_PUBLIC_KEY_PATH: "/app/keys/public.pem"
+      RATE_LIMIT_TTL: 60
+      RATE_LIMIT_REQ: 100
+    volumes:
+      - ./keys:/app/keys:ro
