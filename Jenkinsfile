@@ -97,9 +97,22 @@ pipeline {
                     def dockerHubImage = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:${DOCKER_TAG}"
                     def dockerHubImageLatest = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:latest"
                     
-                    // Login to Docker Hub
+                    // Login to Docker Hub (sử dụng withCredentials để tránh expose secret)
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin ${DOCKER_REGISTRY}"
+                        // Sử dụng sh với script block để tránh string interpolation
+                        // DOCKER_REGISTRY được expand từ environment variable
+                        // Lưu ý: Đảm bảo credentials ID 'docker-credentials' trong Jenkins có đúng username và password của Docker Hub
+                        sh """
+                            set +x  # Ẩn command để tránh expose password trong logs
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin ${DOCKER_REGISTRY} || {
+                                echo "❌ Docker login failed. Please check:"
+                                echo "   1. Credentials ID '${DOCKER_CREDENTIALS_ID}' exists in Jenkins"
+                                echo "   2. Username and password are correct"
+                                echo "   3. Docker Hub account is active"
+                                exit 1
+                            }
+                            set -x
+                        """
                         
                         // Tag image với Docker Hub username
                         sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${dockerHubImage}"
