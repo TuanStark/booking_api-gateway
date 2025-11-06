@@ -93,24 +93,10 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Image name trên Docker Hub: username/repo-name:tag
-                    def dockerHubImage = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    def dockerHubImageLatest = "${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE}:latest"
-                    
                     // Login to Docker Hub (sử dụng withCredentials để tránh expose secret)
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         // Sử dụng sh với script block để tránh string interpolation
-                        // DOCKER_REGISTRY được expand từ environment variable
-                        // Lưu ý: Đảm bảo credentials ID 'docker-credentials' trong Jenkins có đúng username và password của Docker Hub
                         sh """
-                            # TODO: XÓA CÁC DÒNG DEBUG NÀY SAU KHI KIỂM TRA XONG!
-                            echo "🔍 DEBUG: Checking credentials..."
-                            echo "Username: \$DOCKER_USER"
-                            echo "Password: \$DOCKER_PASS"
-                            echo "Password length: \${#DOCKER_PASS} characters"
-                            echo "Registry: ${DOCKER_REGISTRY}"
-                            echo "---"
-                            
                             set +x  # Ẩn command để tránh expose password trong logs
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin ${DOCKER_REGISTRY} || {
                                 echo "❌ Docker login failed. Please check:"
@@ -120,15 +106,35 @@ pipeline {
                                 exit 1
                             }
                             set -x
+                            
+                            # Image name trên Docker Hub: username/repo-name:tag
+                            # Docker Hub sẽ tự động tạo repository khi push lần đầu
+                            DOCKER_HUB_IMAGE="\${DOCKER_USER}/${DOCKER_IMAGE}"
+                            
+                            # Tag image với Docker Hub username
+                            echo "🏷️  Tagging image: ${DOCKER_IMAGE}:${DOCKER_TAG} -> \${DOCKER_HUB_IMAGE}:${DOCKER_TAG}"
+                            docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} \${DOCKER_HUB_IMAGE}:${DOCKER_TAG}
+                            
+                            echo "🏷️  Tagging image: ${DOCKER_IMAGE}:${DOCKER_TAG} -> \${DOCKER_HUB_IMAGE}:latest"
+                            docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} \${DOCKER_HUB_IMAGE}:latest
+                            
+                            # Push cả 2 tags (Docker Hub sẽ tự tạo repo nếu chưa tồn tại)
+                            echo "📤 Pushing image: \${DOCKER_HUB_IMAGE}:${DOCKER_TAG}"
+                            docker push \${DOCKER_HUB_IMAGE}:${DOCKER_TAG} || {
+                                echo "❌ Push failed. Please check:"
+                                echo "   1. Username '\$DOCKER_USER' is correct"
+                                echo "   2. You have push permissions"
+                                echo "   3. Network connection is stable"
+                                exit 1
+                            }
+                            
+                            echo "📤 Pushing image: \${DOCKER_HUB_IMAGE}:latest"
+                            docker push \${DOCKER_HUB_IMAGE}:latest || {
+                                echo "⚠️ Warning: Failed to push 'latest' tag, but version tag was pushed successfully"
+                            }
+                            
+                            echo "✅ Successfully pushed images to Docker Hub"
                         """
-                        
-                        // Tag image với Docker Hub username
-                        sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${dockerHubImage}"
-                        sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${dockerHubImageLatest}"
-                        
-                        // Push cả 2 tags
-                        sh "docker push ${dockerHubImage}"
-                        sh "docker push ${dockerHubImageLatest}"
                         
                         // Logout
                         sh "docker logout ${DOCKER_REGISTRY}"
