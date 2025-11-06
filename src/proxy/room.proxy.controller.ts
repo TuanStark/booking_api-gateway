@@ -1,4 +1,13 @@
-import { All, Controller, Req, Res, UseGuards, UseInterceptors, UseFilters, Get } from '@nestjs/common';
+import {
+  All,
+  Controller,
+  Req,
+  Res,
+  UseGuards,
+  UseInterceptors,
+  UseFilters,
+  Get,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { UpstreamService } from '../services/upstream.service';
 import { LoggingInterceptor } from '../common/interceptors/logging.interceptor';
@@ -28,7 +37,7 @@ export class RoomProxyController {
         `/rooms${path}`,
         req.method,
         req,
-        { 
+        {
           authorization: authHeader,
         },
       );
@@ -37,7 +46,9 @@ export class RoomProxyController {
       res.status(result.status || 200).json(result.data);
     } catch (error) {
       const status = (error && error.status) || 500;
-      res.status(status).json({ error: error.message || 'Internal Gateway Error' });
+      res
+        .status(status)
+        .json({ error: error.message || 'Internal Gateway Error' });
     }
   }
 
@@ -56,7 +67,7 @@ export class RoomProxyController {
         `/rooms${path}`,
         req.method,
         req,
-        { 
+        {
           authorization: authHeader,
           'x-user-id': userId,
         },
@@ -66,7 +77,9 @@ export class RoomProxyController {
       res.status(result.status || 200).json(result.data);
     } catch (error) {
       const status = (error && error.status) || 500;
-      res.status(status).json({ error: error.message || 'Internal Gateway Error' });
+      res
+        .status(status)
+        .json({ error: error.message || 'Internal Gateway Error' });
     }
   }
 

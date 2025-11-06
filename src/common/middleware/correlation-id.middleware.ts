@@ -6,9 +6,10 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    const header = req.headers['x-correlation-id'] || req.headers['x-request-id'];
+    const header =
+      req.headers['x-correlation-id'] || req.headers['x-request-id'];
     const id = header || uuidv4();
-    
+
     // ✅ Attach to request object instead of modifying headers
     (req as any).correlationId = id;
     res.setHeader('x-correlation-id', id);

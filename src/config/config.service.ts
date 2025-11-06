@@ -21,10 +21,14 @@ export class AppConfigService {
   get bookingServiceUrl(): string {
     return process.env.BOOKING_SERVICE_URL || 'http://localhost:3005';
   }
-  
+
   get port(): number {
     return Number(process.env.PORT || 4000);
   }
-  get rateLimitTTL(): number { return Number(process.env.RATE_LIMIT_TTL || 60); }
-  get rateLimitLimit(): number { return Number(process.env.RATE_LIMIT_REQ || 100); }
+  get rateLimitTTL(): number {
+    return Number(process.env.RATE_LIMIT_TTL || 60);
+  }
+  get rateLimitLimit(): number {
+    return Number(process.env.RATE_LIMIT_REQ || 100);
+  }
 }

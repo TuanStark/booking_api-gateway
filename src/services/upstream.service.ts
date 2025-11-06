@@ -20,19 +20,40 @@ export class UpstreamService {
   private getBaseUrl(service: string): string {
     switch (service) {
       case 'auth':
-        return this.configService.get<string>('AUTH_SERVICE_URL') || 'http://localhost:3001';
+        return (
+          this.configService.get<string>('AUTH_SERVICE_URL') ||
+          'http://localhost:3001'
+        );
       case 'booking':
-        return this.configService.get<string>('BOOKING_SERVICE_URL') || 'http://localhost:3005';
+        return (
+          this.configService.get<string>('BOOKING_SERVICE_URL') ||
+          'http://localhost:3005'
+        );
       case 'payment':
-        return this.configService.get<string>('PAYMENT_SERVICE_URL') || 'http://localhost:3006';
+        return (
+          this.configService.get<string>('PAYMENT_SERVICE_URL') ||
+          'http://localhost:3006'
+        );
       case 'notification':
-        return this.configService.get<string>('NOTIFICATION_SERVICE_URL') || 'http://localhost:3007';
+        return (
+          this.configService.get<string>('NOTIFICATION_SERVICE_URL') ||
+          'http://localhost:3007'
+        );
       case 'buildings':
-        return this.configService.get<string>('BUILDING_SERVICE_URL') || 'http://localhost:3002';
+        return (
+          this.configService.get<string>('BUILDING_SERVICE_URL') ||
+          'http://localhost:3002'
+        );
       case 'rooms':
-        return this.configService.get<string>('ROOM_SERVICE_URL') || 'http://localhost:3003';
+        return (
+          this.configService.get<string>('ROOM_SERVICE_URL') ||
+          'http://localhost:3003'
+        );
       case 'bookings':
-        return this.configService.get<string>('BOOKING_SERVICE_URL') || 'http://localhost:3005';
+        return (
+          this.configService.get<string>('BOOKING_SERVICE_URL') ||
+          'http://localhost:3005'
+        );
       default:
         throw new Error(`Unknown service: ${service}`);
     }
@@ -50,7 +71,7 @@ export class UpstreamService {
 
     const contentType = req.headers?.['content-type'];
     const forwardedHeaders: Record<string, any> = {
-      'authorization': req.headers['authorization'],
+      authorization: req.headers['authorization'],
       'content-type': req.headers['content-type'],
       ...headers,
     };
@@ -58,12 +79,12 @@ export class UpstreamService {
     // ✅ Nếu multipart/form-data → rebuild FormData từ req.body và req.files
     if (contentType && contentType.includes('multipart/form-data')) {
       const form = new FormData();
-      
+
       // Append body fields
       for (const field in req.body) {
         form.append(field, req.body[field]);
       }
-      
+
       // Append files
       if (req.files) {
         const files = Array.isArray(req.files) ? req.files : [req.files];
@@ -74,7 +95,7 @@ export class UpstreamService {
           });
         }
       }
-      
+
       data = form;
       headers = { ...forwardedHeaders, ...form.getHeaders() };
     } else {

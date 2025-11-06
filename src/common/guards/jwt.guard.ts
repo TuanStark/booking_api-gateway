@@ -21,8 +21,14 @@ export class JwtAuthGuard implements CanActivate {
   ) {
     // Đọc public key (được mount từ auth-service)
     this.publicKey = loadPublicKey();
-    console.log('JWT Guard initialized with public key length:', this.publicKey.length);
-    console.log('First 50 chars of public key:', this.publicKey.substring(0, 50));
+    console.log(
+      'JWT Guard initialized with public key length:',
+      this.publicKey.length,
+    );
+    console.log(
+      'First 50 chars of public key:',
+      this.publicKey.substring(0, 50),
+    );
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -31,7 +37,7 @@ export class JwtAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (isPublic) {
       return true; // Allow access to public routes
     }
@@ -39,7 +45,8 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers['authorization'];
 
-    if (!authHeader) throw new UnauthorizedException('Missing Authorization header');
+    if (!authHeader)
+      throw new UnauthorizedException('Missing Authorization header');
 
     const token = authHeader.split(' ')[1];
     console.log('token', token);
@@ -61,7 +68,9 @@ export class JwtAuthGuard implements CanActivate {
     } catch (err) {
       console.error('JWT verification error:', err.message);
       console.error('Error details:', err);
-      throw new UnauthorizedException(`Invalid or expired token: ${err.message}`);
+      throw new UnauthorizedException(
+        `Invalid or expired token: ${err.message}`,
+      );
     }
   }
 }

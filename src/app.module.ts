@@ -21,15 +21,23 @@ import { memoryStorage } from 'multer';
       storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
     }),
-    ThrottlerModule.forRoot([{
-      ttl: Number(process.env.RATE_LIMIT_TTL || 60) * 1000, // Convert to milliseconds
-      limit: Number(process.env.RATE_LIMIT_REQ || 100),
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: Number(process.env.RATE_LIMIT_TTL || 60) * 1000, // Convert to milliseconds
+        limit: Number(process.env.RATE_LIMIT_REQ || 100),
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true, // 👈 đảm bảo ConfigService có thể dùng ở mọi nơi
     }),
   ],
-  controllers: [AuthProxyController, BookingProxyController, PaymentProxyController, BuildingProxyController, RoomProxyController],
+  controllers: [
+    AuthProxyController,
+    BookingProxyController,
+    PaymentProxyController,
+    BuildingProxyController,
+    RoomProxyController,
+  ],
   providers: [AppConfigService, UpstreamService],
 })
 export class AppModule implements NestModule {
