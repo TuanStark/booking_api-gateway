@@ -4,7 +4,9 @@ pipeline {
     environment {
         SERVICE_NAME = 'api-gateway'
         SERVICE_PORT = '3000'
-        DOCKER_IMAGE = "dorm-booking/${SERVICE_NAME}"
+        // Repository name trên Docker Hub: chỉ được có 1 dấu "/" (username/repo-name)
+        // Không được dùng format: username/namespace/repo-name (2 dấu "/")
+        DOCKER_IMAGE = "${SERVICE_NAME}"  // Sẽ thành: tuanstark/api-gateway
         DOCKER_TAG = "${BUILD_NUMBER}"
         NODE_VERSION = '18'
         // TODO: Thay đổi 'your-dockerhub-username' thành username Docker Hub của bạn
