@@ -75,7 +75,17 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    // Kiểm tra xem trivy có sẵn không
+                    def trivyAvailable = sh(
+                        script: 'which trivy || command -v trivy',
+                        returnStatus: true
+                    ) == 0
+                    
+                    if (trivyAvailable) {
+                        sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    } else {
+                        echo "⚠️ Trivy not found, skipping security scan. Install trivy to enable security scanning."
+                    }
                 }
             }
         }
