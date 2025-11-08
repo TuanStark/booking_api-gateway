@@ -1,16 +1,35 @@
 version: '3.9'
+
 services:
-  gateway:
-    build: .
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: api-gateway
     ports:
       - "4000:4000"
     environment:
-      PORT: 4000
-      AUTH_SERVICE_URL: "http://auth:3001"
-      BOOKING_SERVICE_URL: "http://booking:3002"
-      USER_SERVICE_URL: "http://user:3003"
-      JWT_PUBLIC_KEY_PATH: "/app/keys/public.pem"
-      RATE_LIMIT_TTL: 60
-      RATE_LIMIT_REQ: 100
+      PORT: ${PORT}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
+      BUILDING_SERVICE_URL: ${BUILDING_SERVICE_URL}
+      ROOM_SERVICE_URL: ${ROOM_SERVICE_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      # UPLOAD_SERVICE_URL: ${UPLOAD_SERVICE_URL}
+      REVIEW_SERVICE_URL: ${REVIEW_SERVICE_URL}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH}
+      RATE_LIMIT_TTL: ${RATE_LIMIT_TTL}
+      RATE_LIMIT_REQ: ${RATE_LIMIT_REQ}
+      REFRESH_ENDPOINT: ${REFRESH_ENDPOINT}
     volumes:
-      - ./keys:/app/keys:ro
+      - .:/app
+      - /app/node_modules
+    networks:
+      my_custom_network:
+        ipv4_address: ${APP_IP}
+
+networks:
+  my_custom_network:
+    external: true
+
