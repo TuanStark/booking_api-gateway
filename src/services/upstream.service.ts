@@ -64,28 +64,37 @@ export class UpstreamService {
     path: string,
     method: string,
     req: Request | any,
-    headers: Record<string, any> = {},
+    extraHeaders: Record<string, any> = {},
   ): Promise<{ status: number; data: any; headers: Record<string, any> }> {
     const url = `${this.getBaseUrl(service)}${path}`;
     let data: any = undefined;
-
-    const contentType = req.headers?.['content-type'];
-    const forwardedHeaders: Record<string, any> = {
-      authorization: req.headers['authorization'],
-      'content-type': req.headers['content-type'],
-      ...headers,
-    };
-
-    // ✅ Nếu multipart/form-data → rebuild FormData từ req.body và req.files
+    let finalHeaders: Record<string, any> = {};
+  
+    // BƯỚC 1: Copy TẤT CẢ headers từ req (trừ host, connection,...)
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value && typeof value === 'string') {
+        // Loại bỏ các header không nên forward
+        if (!['host', 'connection', ':path', ':method'].includes(key.toLowerCase())) {
+          finalHeaders[key] = value;
+        }
+      }
+    });
+  
+    // BƯỚC 2: Ghi đè bằng extraHeaders (authorization, x-user-id,...)
+    Object.entries(extraHeaders).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        finalHeaders[key] = value;
+      }
+    });
+  
+    const contentType = finalHeaders['content-type'];
+  
+    // Xử lý multipart/form-data
     if (contentType && contentType.includes('multipart/form-data')) {
       const form = new FormData();
-
-      // Append body fields
       for (const field in req.body) {
         form.append(field, req.body[field]);
       }
-
-      // Append files
       if (req.files) {
         const files = Array.isArray(req.files) ? req.files : [req.files];
         for (const file of files) {
@@ -95,36 +104,33 @@ export class UpstreamService {
           });
         }
       }
-
       data = form;
-      headers = { ...forwardedHeaders, ...form.getHeaders() };
+      finalHeaders = { ...finalHeaders, ...form.getHeaders() };
     } else {
-      // ✅ Nếu JSON
       data = req.body;
-      headers = {
-        ...forwardedHeaders,
-        'content-type': contentType || 'application/json',
-      };
+      if (!finalHeaders['content-type']) {
+        finalHeaders['content-type'] = 'application/json';
+      }
     }
-
+  
     this.logger.log(`[${method}] → ${url}`);
-
+    this.logger.debug('Forwarded headers:', finalHeaders);
+  
     const response = await firstValueFrom(
       this.httpService.request({
         url,
         method: method as any,
         data,
-        headers,
+        headers: finalHeaders,
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
-        timeout: 30000, // 30 second timeout
-        // Do not throw on non-2xx; we forward status and data
+        timeout: 30000,
         validateStatus: () => true,
       }),
     );
-
+  
     this.logger.log(`Response: ${response.status}`);
-
+  
     return {
       status: response.status,
       data: response.data,

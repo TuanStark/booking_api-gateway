@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UseFilters,
   Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { UpstreamService } from '../services/upstream.service';
@@ -24,70 +25,56 @@ import { Roles } from '../common/decorators/roles.decorator';
 export class RoomProxyController {
   constructor(private readonly upstream: UpstreamService) {}
 
-  // Public route - GET all rooms (không cần JWT)
+  // === PUBLIC: Tất cả GET requests (không cần JWT) ===
   @Public()
-  @Get()
-  async getAllRooms(@Req() req: Request, @Res() res: Response) {
-    try {
-      const authHeader = req.headers['authorization'];
-      const path = req.originalUrl.replace(/^\/rooms/, '');
+  @Get('*')
+  async handlePublicGet(@Req() req: Request, @Res() res: Response) {
+    await this.forward(req, res, { requireAuth: false });
+  }
 
+  // === ADMIN: Tất cả các method khác (POST, PUT, DELETE, PATCH, ...) ===
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @All('*') // Bắt tất cả method + path, trừ những route đã định nghĩa trước
+  async handleAdminProxy(@Req() req: Request, @Res() res: Response) {
+    await this.forward(req, res, { requireAuth: true });
+  }
+
+  // === Helper: Forward request với cấu hình linh hoạt ===
+  private async forward(
+    req: Request,
+    res: Response,
+    { requireAuth }: { requireAuth: boolean },
+  ) {
+    try {
+      const path = req.originalUrl.replace(/^\/rooms/, '') || '/';
+      const extraHeaders: Record<string, any> = {};
+  
+      if (requireAuth) {
+        const userId = (req as any).user?.sub;
+        if (!userId) throw new UnauthorizedException('Invalid JWT');
+        extraHeaders['x-user-id'] = userId;
+      }
+  
+      // Không cần thêm 'authorization' vào extraHeaders → đã có trong req.headers
       const result = await this.upstream.forwardRequest(
         'rooms',
         `/rooms${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-        },
+        extraHeaders,
       );
-
-      res.set(result.headers || {});
+  
+      Object.entries(result.headers || {}).forEach(([k, v]) => {
+        if (v) res.setHeader(k, v as string);
+      });
+  
       res.status(result.status || 200).json(result.data);
-    } catch (error) {
-      const status = (error && error.status) || 500;
-      res
-        .status(status)
-        .json({ error: error.message || 'Internal Gateway Error' });
+    } catch (error: any) {
+      const status = error.status || 500;
+      res.status(status).json({
+        error: error.message || 'Internal Gateway Error',
+      });
     }
-  }
-
-  // Protected routes - Tất cả methods khác (cần JWT + Admin role)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @All('*')
-  async proxyRoom(@Req() req: Request, @Res() res: Response) {
-    try {
-      const authHeader = req.headers['authorization'];
-      const userId = (req as any).user?.sub || (req as any).user?.id;
-      const path = req.originalUrl.replace(/^\/rooms/, '');
-
-      const result = await this.upstream.forwardRequest(
-        'rooms',
-        `/rooms${path}`,
-        req.method,
-        req,
-        {
-          authorization: authHeader,
-          'x-user-id': userId,
-        },
-      );
-
-      res.set(result.headers || {});
-      res.status(result.status || 200).json(result.data);
-    } catch (error) {
-      const status = (error && error.status) || 500;
-      res
-        .status(status)
-        .json({ error: error.message || 'Internal Gateway Error' });
-    }
-  }
-
-  // Handle base path /rooms (no trailing segment)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @All()
-  async proxyRoomBase(@Req() req: Request, @Res() res: Response) {
-    return this.proxyRoom(req, res);
   }
 }

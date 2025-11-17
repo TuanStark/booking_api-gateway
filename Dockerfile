@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copy package files first → Tối ưu cache
 COPY package*.json ./
-COPY prisma ./prisma/
 
 # Cài TẤT CẢ dependencies (dev + prod) để build
 RUN npm ci --legacy-peer-deps
@@ -17,9 +16,8 @@ COPY . .
 # Copy keys vào builder stage
 COPY keys ./keys
 
-# Generate Prisma Client + Build NestJS
-RUN npx prisma generate && \
-    npm run build
+# Build NestJS
+RUN npm run build
 
 # =============================
 # 2. PRUNER – Loại bỏ devDependencies
@@ -31,15 +29,10 @@ WORKDIR /app
 COPY package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist         ./dist
-COPY --from=builder /app/prisma       ./prisma
 
 # Cài CHỈ production dependencies
 RUN npm ci --only=production --legacy-peer-deps && \
-    npm cache clean --force && \
-    rm -rf /app/node_modules/.prisma
-
-# Tái tạo Prisma Client trong môi trường sạch (binary nhỏ hơn)
-RUN npx prisma generate
+    npm cache clean --force
 
 # =============================
 # 3. FINAL IMAGE – Runtime only
@@ -54,7 +47,6 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy file cần thiết + gán quyền
 COPY --from=pruner --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=pruner --chown=nestjs:nodejs /app/dist          ./dist
-COPY --from=pruner --chown=nestjs:nodejs /app/prisma        ./prisma
 COPY --from=pruner --chown=nestjs:nodejs /app/node_modules  ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/keys         ./keys
 
