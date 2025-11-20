@@ -32,14 +32,17 @@ export class UploadProxyController {
       const authHeader = req.headers['authorization'];
       const path = req.originalUrl.replace(/^\/uploads/, '');
 
+      const extraHeaders: Record<string, string> = {};
+      if (authHeader) {
+        extraHeaders.authorization = authHeader;
+      }
+
       const result = await this.upstream.forwardRequest(
         'uploads',
         `/uploads${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});
@@ -61,15 +64,20 @@ export class UploadProxyController {
       const userId = (req as any).user?.sub || (req as any).user?.id;
       const path = req.originalUrl.replace(/^\/uploads/, '');
 
+      const extraHeaders: Record<string, string> = {};
+      if (req.headers['authorization']) {
+        extraHeaders.authorization = req.headers['authorization'];
+      }
+      if (userId) {
+        extraHeaders['x-user-id'] = userId;
+      }
+
       const result = await this.upstream.forwardRequest(
         'uploads',
         `/uploads${path}`,
         req.method,
         req,
-        {
-          authorization: req.headers['authorization'],
-          'x-user-id': userId,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});

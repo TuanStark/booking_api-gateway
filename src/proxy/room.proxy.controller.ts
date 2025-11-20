@@ -48,7 +48,7 @@ export class RoomProxyController {
   ) {
     try {
       const path = req.originalUrl.replace(/^\/rooms/, '') || '/';
-      const extraHeaders: Record<string, any> = {};
+      const extraHeaders: Record<string, string> = {};
   
       if (requireAuth) {
         const userId = (req as any).user?.sub;

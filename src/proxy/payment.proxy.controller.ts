@@ -35,14 +35,17 @@ export class PaymentProxyController {
       const authHeader = req.headers['authorization'];
       const path = req.originalUrl.replace(/^\/payment/, '') || '';
 
+      const extraHeaders: Record<string, string> = {};
+      if (authHeader) {
+        extraHeaders.authorization = authHeader;
+      }
+
       const result = await this.upstream.forwardRequest(
         'payment',
         `/payments${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});
@@ -68,15 +71,20 @@ export class PaymentProxyController {
 
       const path = req.originalUrl.replace(/^\/payment/, '');
 
+      const extraHeaders: Record<string, string> = {};
+      if (authHeader) {
+        extraHeaders.authorization = authHeader;
+      }
+      if (userId) {
+        extraHeaders['x-user-id'] = userId;
+      }
+
       const result = await this.upstream.forwardRequest(
         'payment',
         `/payments${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-          'x-user-id': userId,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});

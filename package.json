@@ -30,6 +30,7 @@
     "axios": "^1.5.0",
     "axios-retry": "^3.3.1",
     "cookie-parser": "^1.4.7",
+    "form-data": "^4.0.5",
     "http-proxy-middleware": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "opossum": "^7.0.0",

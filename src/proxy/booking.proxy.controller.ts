@@ -31,14 +31,17 @@ export class BookingProxyController {
       const authHeader = req.headers['authorization'];
       const path = req.originalUrl.replace(/^\/bookings/, '');
 
+      const extraHeaders: Record<string, string> = {};
+      if (authHeader) {
+        extraHeaders.authorization = authHeader;
+      }
+
       const result = await this.upstream.forwardRequest(
         'bookings',
         `/bookings${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});
@@ -61,15 +64,20 @@ export class BookingProxyController {
 
       const path = req.originalUrl.replace(/^\/bookings/, '');
 
+      const extraHeaders: Record<string, string> = {};
+      if (authHeader) {
+        extraHeaders.authorization = authHeader;
+      }
+      if (userId) {
+        extraHeaders['x-user-id'] = userId;
+      }
+
       const result = await this.upstream.forwardRequest(
         'bookings',
         `/bookings${path}`,
         req.method,
         req,
-        {
-          authorization: authHeader,
-          'x-user-id': userId,
-        },
+        extraHeaders,
       );
 
       res.set(result.headers || {});
