@@ -22,11 +22,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class UploadProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
   // Public route - GET all uploads (không cần JWT)
   @Public()
-  @Get()
+  @Get(['*', ''])
   async getAllUploads(@Req() req: Request, @Res() res: Response) {
     try {
       const authHeader = req.headers['authorization'];
@@ -58,7 +58,7 @@ export class UploadProxyController {
   // Protected routes - Tất cả methods khác (cần JWT + Admin role)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @All('*')
+  @All(['*', ''])
   async proxyUpload(@Req() req: Request, @Res() res: Response) {
     try {
       const userId = (req as any).user?.sub || (req as any).user?.id;

@@ -22,11 +22,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class NotificationProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
   // Public route - GET all notifications (không cần JWT)
   @Public()
-  @Get()
+  @Get(['*', ''])
   async getAllNotifications(@Req() req: Request, @Res() res: Response) {
     try {
       const authHeader = req.headers['authorization'];
@@ -58,7 +58,7 @@ export class NotificationProxyController {
   // Protected routes - Tất cả methods khác (cần JWT + Admin role)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @All('*')
+  @All(['*', ''])
   async proxyNotification(@Req() req: Request, @Res() res: Response) {
     try {
       const userId = (req as any).user?.sub || (req as any).user?.id;

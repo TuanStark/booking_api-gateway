@@ -23,11 +23,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class RoomProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
   // === PUBLIC: Tất cả GET requests (không cần JWT) ===
   @Public()
-  @Get('*')
+  @Get(['*', ''])
   async handlePublicGet(@Req() req: Request, @Res() res: Response) {
     await this.forward(req, res, { requireAuth: false });
   }
@@ -35,7 +35,7 @@ export class RoomProxyController {
   // === ADMIN: Tất cả các method khác (POST, PUT, DELETE, PATCH, ...) ===
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @All('*') // Bắt tất cả method + path, trừ những route đã định nghĩa trước
+  @All(['*', '']) // Bắt tất cả method + path, trừ những route đã định nghĩa trước
   async handleAdminProxy(@Req() req: Request, @Res() res: Response) {
     await this.forward(req, res, { requireAuth: true });
   }
@@ -49,13 +49,13 @@ export class RoomProxyController {
     try {
       const path = req.originalUrl.replace(/^\/rooms/, '') || '/';
       const extraHeaders: Record<string, string> = {};
-  
+
       if (requireAuth) {
         const userId = (req as any).user?.sub;
         if (!userId) throw new UnauthorizedException('Invalid JWT');
         extraHeaders['x-user-id'] = userId;
       }
-  
+
       // Không cần thêm 'authorization' vào extraHeaders → đã có trong req.headers
       const result = await this.upstream.forwardRequest(
         'rooms',
@@ -64,11 +64,11 @@ export class RoomProxyController {
         req,
         extraHeaders,
       );
-  
+
       Object.entries(result.headers || {}).forEach(([k, v]) => {
         if (v) res.setHeader(k, v as string);
       });
-  
+
       res.status(result.status || 200).json(result.data);
     } catch (error: any) {
       const status = error.status || 500;

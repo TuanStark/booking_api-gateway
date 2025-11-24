@@ -21,11 +21,11 @@ import { Public } from '../common/decorators/public.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class BookingProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
   // Public route - GET all bookings (không cần JWT)
   @Public()
-  @Get()
+  @Get(['*', ''])
   async getAllBookings(@Req() req: Request, @Res() res: Response) {
     try {
       const authHeader = req.headers['authorization'];
@@ -56,7 +56,7 @@ export class BookingProxyController {
 
   // Protected routes - Tất cả methods khác (cần JWT)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @All('*')
+  @All(['*', ''])
   async proxyBookingAuth(@Req() req: Request, @Res() res: Response) {
     try {
       const authHeader = req.headers['authorization'];

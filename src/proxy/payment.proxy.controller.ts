@@ -22,11 +22,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class PaymentProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
   // Public route - GET all payments (không cần JWT)
   @Public()
-  @Get()
+  @Get(['*', ''])
   async getAllPayments(
     @Req() req: express.Request,
     @Res() res: express.Response,
@@ -60,7 +60,7 @@ export class PaymentProxyController {
 
   // Protected routes - Tất cả methods khác (cần JWT)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @All('*')
+  @All(['*', ''])
   async proxyPayment(
     @Req() req: express.Request,
     @Res() res: express.Response,

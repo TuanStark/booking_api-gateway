@@ -1,9 +1,9 @@
-// src/services/upstream.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Readable } from 'stream';
+import { createReadStream } from 'fs';
 import type { Request } from 'express';
 import FormData from 'form-data';
 
@@ -14,7 +14,7 @@ export class UpstreamService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   private getBaseUrl(service: string): string {
     const map: Record<string, string> = {
@@ -44,7 +44,7 @@ export class UpstreamService {
     const url = `${this.getBaseUrl(service)}${path}`;
     const upperMethod = method.toUpperCase();
 
-    // Whitelist headers được phép forward
+    // Header whitelist – chỉ forward những cái cần thiết
     const allowedHeaders = [
       'authorization',
       'x-user-id',
@@ -56,14 +56,14 @@ export class UpstreamService {
       'accept-encoding',
       'accept-language',
       'cookie',
+      'user-agent',
     ];
 
     const headers: Record<string, string> = {};
 
-    // Copy headers từ request gốc (chỉ lấy những cái được phép)
     Object.entries(req.headers).forEach(([key, value]) => {
       if (typeof value === 'string' && allowedHeaders.includes(key.toLowerCase())) {
-        headers[key] = value;
+        headers[key.toLowerCase()] = value;
       }
     });
 
@@ -71,7 +71,8 @@ export class UpstreamService {
     Object.assign(headers, extraHeaders);
 
     let data: any = undefined;
-    const isMultipart = headers['content-type']?.includes('multipart/form-data');
+    const contentType = headers['content-type'] || '';
+    const isMultipart = contentType.includes('multipart/form-data');
 
     this.logger.log(`[${upperMethod}] → ${url}`);
 
@@ -79,53 +80,71 @@ export class UpstreamService {
       // ==============================================
       // XỬ LÝ BODY
       // ==============================================
-      if (['GET', 'HEAD', 'DELETE'].includes(upperMethod)) {
+      if (['GET', 'HEAD'].includes(upperMethod)) {
         data = undefined;
       }
-      // MULTIPART/FORM-DATA (có file)
+
+      // MULTIPART/FORM-DATA – PHIÊN BẢN HOÀN HẢO (2025)
       else if (isMultipart) {
         const form = new FormData();
 
-        // Text fields
-        if (req.body && typeof req.body === 'object') {
-          Object.keys(req.body).forEach((key) => {
-            const value = req.body[key];
-            if (value !== undefined && value !== null) {
-              form.append(key, value);
+        // 1. Text fields (luôn có trong req.body)
+        Object.entries(req.body || {}).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            if (Array.isArray(value)) {
+              value.forEach((v) => form.append(key, String(v)));
+            } else {
+              form.append(key, String(value));
             }
-          });
-        }
-
-        // Files: hỗ trợ req.file, req.files (array), req.files[field] (object)
-        const files: any[] = [];
-
-        if ((req as any).file) files.push((req as any).file);
-        if (Array.isArray((req as any).files)) files.push(...(req as any).files);
-        if ((req as any).files && typeof (req as any).files === 'object') {
-          Object.values((req as any).files).forEach((arr: any) => {
-            files.push(...(Array.isArray(arr) ? arr : [arr]));
-          });
-        }
-
-        for (const file of files) {
-          if (file?.buffer) {
-            const stream = Readable.from(file.buffer);
-            form.append(file.fieldname, stream, {
-              filename: file.originalname || file.filename || 'file',
-              contentType: file.mimetype || 'application/octet-stream',
-              knownLength: file.size, // QUAN TRỌNG: giúp form-data tính đúng Content-Length
-            });
           }
+        });
+
+        // 2. Thu thập tất cả file (hỗ trợ mọi kiểu multer)
+        const files: any[] = [];
+        const collectFiles = (f: any) => {
+          if (!f) return;
+          if (Array.isArray(f)) f.forEach(collectFiles);
+          else files.push(f);
+        };
+
+        if ((req as any).file) collectFiles((req as any).file);
+        if ((req as any).files) collectFiles((req as any).files);
+
+        // 3. Tạo stream đúng cách
+        for (const file of files) {
+          if (!file) continue;
+
+          let stream: Readable;
+          const options: any = {
+            filename: file.originalname || file.filename || 'file',
+            contentType: file.mimetype || 'application/octet-stream',
+          };
+
+          if (file.buffer) {
+            // File nhỏ → dùng buffer (nhanh, ổn định)
+            stream = Readable.from(file.buffer);
+            options.knownLength = file.buffer.length;
+          } else if (file.path && typeof file.path === 'string') {
+            // File lớn → stream từ disk (rất ổn cho > 50MB)
+            stream = createReadStream(file.path);
+            if (file.size) options.knownLength = file.size;
+          } else {
+            continue;
+          }
+
+          form.append(file.fieldname, stream, options);
         }
 
-        data = form;
+        // 4. Headers từ FormData
         Object.assign(headers, form.getHeaders());
 
-        // BẮT BUỘC: XÓA Content-Length để dùng chunked encoding
-        // Nếu không xóa → axios + form-data cũ sẽ gửi sai length → request aborted
+        // Quan trọng: Xóa Content-Length để dùng chunked encoding
         delete headers['content-length'];
         delete headers['Content-Length'];
+
+        data = form;
       }
+
       // JSON hoặc các body khác
       else if (req.body && (Object.keys(req.body).length > 0 || req.is('json'))) {
         data = req.body;
@@ -133,32 +152,29 @@ export class UpstreamService {
           headers['content-type'] = 'application/json';
         }
       }
-      // Body rỗng (một số PUT, PATCH, DELETE...)
 
-      // ==============================================
-      // GỬI REQUEST QUA AXIOS
-      // ==============================================
-      // Đảm bảo không có Content-Length sai (axios sẽ tự tính)
+      // Xóa Content-Length một lần nữa (phòng axios thêm lại)
       delete headers['content-length'];
       delete headers['Content-Length'];
 
+      // ==============================================
+      // GỬI REQUEST
+      // ==============================================
       const response = await firstValueFrom(
         this.httpService.request({
           url,
           method: upperMethod as any,
           data,
           headers,
-          timeout: 120000, // 2 phút cho upload file lớn
+          timeout: 300000, // 5 phút – đủ cho file 2GB+
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
           validateStatus: () => true, // luôn resolve
-
-          // QUAN TRỌNG: ngăn axios tự động can thiệp vào body khi dùng FormData
-          transformRequest: isMultipart ? [(data: any) => data] : undefined,
+          // KHÔNG ĐỘNG VÀO transformRequest – đây là chìa khóa!
         }),
       );
 
-      this.logger.log(`← [${response.status}] from ${service}`);
+      this.logger.log(`← [${response.status}] ${service}${path}`);
 
       return {
         status: response.status,
@@ -174,9 +190,9 @@ export class UpstreamService {
 
       if (error.response) {
         return {
-          status: error.response.status,
+          status: error.response.status || 502,
           data: error.response.data || { message: 'Upstream error' },
-          headers: error.response.headers,
+          headers: error.response.headers || {},
         };
       }
 
