@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UseFilters,
   Get,
+  Post,
 } from '@nestjs/common';
 import express from 'express';
 import { UpstreamService } from '../services/upstream.service';
@@ -23,6 +24,29 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseFilters(AllExceptionsFilter)
 export class PaymentProxyController {
   constructor(private readonly upstream: UpstreamService) { }
+
+  @Public()
+  @Post('webhook')
+  async webhook(@Req() req: express.Request, @Res() res: express.Response) {
+    try {
+      const result = await this.upstream.forwardRequest(
+        'payment',
+        '/payments/webhook',
+        req.method,
+        req, // raw body needed for signature verification!
+        {}   // no extra headers usually
+      );
+
+      // Important: forward headers like content-type, stripe-signature, etc.
+      res.set(result.headers || {});
+      return res.status(result.status || 200).send(result.data);
+    } catch (error: any) {
+      console.error('Webhook proxy error:', error);
+      return res.status(error?.status || 500).json({
+        message: error?.message || 'Webhook processing failed',
+      });
+    }
+  }
 
   // Public route - GET all payments (không cần JWT)
   @Public()
