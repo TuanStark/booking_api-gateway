@@ -11,6 +11,8 @@ import { PaymentProxyController } from './proxy/payment.proxy.controller';
 import { ConfigModule } from '@nestjs/config';
 import { BuildingProxyController } from './proxy/building.proxy.controller';
 import { RoomProxyController } from './proxy/room.proxy.controller';
+import { PostProxyController } from './proxy/post.proxy.controller';
+import { PostCategoriesProxyController } from './proxy/post-categories.proxy.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AppController } from './app.controller';
@@ -39,6 +41,8 @@ import { AppController } from './app.controller';
     PaymentProxyController,
     BuildingProxyController,
     RoomProxyController,
+    PostProxyController,
+    PostCategoriesProxyController,
   ],
   providers: [AppConfigService, UpstreamService],
 })
