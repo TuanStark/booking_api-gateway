@@ -16,6 +16,7 @@ import { PostCategoriesProxyController } from './proxy/post-categories.proxy.con
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AppController } from './app.controller';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AppController } from './app.controller';
     ConfigModule.forRoot({
       isGlobal: true, // 👈 đảm bảo ConfigService có thể dùng ở mọi nơi
     }),
+    DashboardModule, // 👈 Dashboard Aggregator Module
   ],
   controllers: [
     AppController,
@@ -53,3 +55,4 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
+
