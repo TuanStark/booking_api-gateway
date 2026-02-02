@@ -30,8 +30,7 @@ export class ReviewProxyController {
     await this.forward(req, res);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('ADMIN')
+  @UseGuards(JwtAuthGuard)
   @All(['*', ''])
   async proxyAdmin(@Req() req: Request, @Res() res: Response) {
     await this.forward(req, res);
