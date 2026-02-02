@@ -26,6 +26,7 @@ export class UpstreamService {
       payment: this.configService.get<string>('PAYMENT_SERVICE_URL') || 'http://payment-service:3006',
       notification: this.configService.get<string>('NOTIFICATION_SERVICE_URL') || 'http://notification-service:3007',
       post: this.configService.get<string>('POST_SERVICE_URL') || 'http://post-service:3010',
+      review: this.configService.get<string>('REVIEW_SERVICE_URL') || 'http://review-service:3008',
     };
 
     if (!map[service]) {

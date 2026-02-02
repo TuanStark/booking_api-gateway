@@ -22,80 +22,62 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class ReviewProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(private readonly upstream: UpstreamService) { }
 
-  // Public route - GET all reviews (không cần JWT)
   @Public()
-  @Get()
-  async getAllReviews(@Req() req: Request, @Res() res: Response) {
+  @Get(['*', ''])
+  async getPublic(@Req() req: Request, @Res() res: Response) {
+    await this.forward(req, res);
+  }
+
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('ADMIN')
+  @All(['*', ''])
+  async proxyAdmin(@Req() req: Request, @Res() res: Response) {
+    await this.forward(req, res);
+  }
+
+  private async forward(req: Request, res: Response) {
     try {
-      const authHeader = req.headers['authorization'];
-      const path = req.originalUrl.replace(/^\/reviews/, '');
+      let upstreamPath = req.originalUrl.match(/^\/reviews(.*)/)?.[1] || '/';
+      console.log('DEBUG - Original upstreamPath:', upstreamPath);
+
+      if (upstreamPath === '/') {
+        upstreamPath = '';
+      }
+      console.log('DEBUG - Final upstreamPath:', upstreamPath);
+      console.log('DEBUG - Final URL will be:', `/reviews${upstreamPath}`);
 
       const extraHeaders: Record<string, string> = {};
-      if (authHeader) {
-        extraHeaders.authorization = authHeader;
+      if (req.headers.authorization) {
+        extraHeaders.authorization = req.headers.authorization as string;
+      }
+      if ((req as any).user?.sub) {
+        extraHeaders['x-user-id'] = (req as any).user.sub;
+      } else if ((req as any).user?.id) {
+        extraHeaders['x-user-id'] = (req as any).user.id;
       }
 
       const result = await this.upstream.forwardRequest(
-        'reviews',
-        `/reviews${path}`,
+        'review',
+        `/reviews${upstreamPath}`,
         req.method,
         req,
         extraHeaders,
       );
 
-      res.set(result.headers || {});
-      res.status(result.status || 200).json(result.data);
-    } catch (error) {
-      const status = (error && error.status) || 500;
-      res
-        .status(status)
-        .json({ error: error.message || 'Internal Gateway Error' });
+      Object.entries(result.headers || {}).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          res.setHeader(key, value);
+        }
+      });
+
+      return res.status(result.status).send(result.data);
+    } catch (error: any) {
+      console.error('Proxy error:', error);
+      const status = error.status || 500;
+      const message = error.message || 'Internal Gateway Error';
+      return res.status(status).json({ message });
     }
-  }
-
-  // Protected routes - Tất cả methods khác (cần JWT + Admin role)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @All('*')
-  async proxyReview(@Req() req: Request, @Res() res: Response) {
-    try {
-      const userId = (req as any).user?.sub || (req as any).user?.id;
-      const path = req.originalUrl.replace(/^\/reviews/, '');
-
-      const extraHeaders: Record<string, string> = {};
-      const authHeader = req.headers['authorization'];
-      if (authHeader) {
-        extraHeaders.authorization = authHeader;
-      }
-      if (userId) {
-        extraHeaders['x-user-id'] = userId;
-      }
-
-      const result = await this.upstream.forwardRequest(
-        'reviews',
-        `/reviews${path}`,
-        req.method,
-        req,
-        extraHeaders,
-      );
-
-      res.set(result.headers || {});
-      res.status(result.status || 200).json(result.data);
-    } catch (error) {
-      const status = (error && error.status) || 500;
-      res
-        .status(status)
-        .json({ error: error.message || 'Internal Gateway Error' });
-    }
-  }
-
-  // Handle base path /reviews (no trailing segment)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @All()
-  async proxyReviewBase(@Req() req: Request, @Res() res: Response) {
-    return this.proxyReview(req, res);
   }
 }
