@@ -7,22 +7,34 @@ import {
   UseInterceptors,
   UseFilters,
   Get,
+  Post,
+  Body,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { UpstreamService } from '../services/upstream.service';
+import { GatewayReviewService } from '../services/gateway-review.service';
 import { LoggingInterceptor } from '../common/interceptors/logging.interceptor';
 import { AllExceptionsFilter } from '../common/filters/http-exception.filter';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
 import { Public } from '../common/decorators/public.decorator';
-import { Roles } from '../common/decorators/roles.decorator';
 
 @Controller('reviews')
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class ReviewProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(
+    private readonly upstream: UpstreamService,
+    private readonly gatewayReviewService: GatewayReviewService,
+  ) { }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/')
+  async createReview(@Req() req: Request, @Body() body: any, @Res() res: Response) {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const result = await this.gatewayReviewService.createReview(userId, body);
+    return res.status(201).json(result);
+  }
 
   @Public()
   @Get(['*', ''])

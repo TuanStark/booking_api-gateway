@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class AppConfigService {
   get authServiceUrl(): string {
-    return process.env.AUTH_SERVICE_URL || 'http://localhost:3000';
+    return process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
   }
   get userServiceUrl(): string {
     return process.env.USER_SERVICE_URL || 'http://localhost:3003';
@@ -20,6 +20,9 @@ export class AppConfigService {
   }
   get bookingServiceUrl(): string {
     return process.env.BOOKING_SERVICE_URL || 'http://localhost:3005';
+  }
+  get reviewServiceUrl(): string {
+    return process.env.REVIEW_SERVICE_URL || 'http://localhost:3008';
   }
 
   get port(): number {

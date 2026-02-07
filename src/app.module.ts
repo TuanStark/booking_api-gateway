@@ -18,6 +18,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AppController } from './app.controller';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { GatewayReviewService } from './services/gateway-review.service';
 
 @Module({
   imports: [
@@ -48,7 +49,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ReviewProxyController,
     PostCategoriesProxyController,
   ],
-  providers: [AppConfigService, UpstreamService],
+  providers: [AppConfigService, UpstreamService, GatewayReviewService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
