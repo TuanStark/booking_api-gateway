@@ -18,6 +18,8 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Public } from '../common/decorators/public.decorator';
 import { GatewayBookingService } from '../services/gateway-booking.service';
 import { Param, Query } from '@nestjs/common';
+import { ResponseData } from '../common/global/globalClass';
+import { HttpMessage, HttpStatus } from '../common/global/globalEnum';
 
 @Controller('bookings')
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
@@ -33,7 +35,8 @@ export class BookingProxyController {
   async getMyBookings(@Req() req: Request) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const token = req.headers['authorization'] || '';
-    return await this.gatewayBookingService.getMyBookings(userId, token);
+    const bookings = await this.gatewayBookingService.getMyBookings(userId, token);
+    return new ResponseData(bookings, HttpStatus.SUCCESS, HttpMessage.SUCCESS);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,12 +44,8 @@ export class BookingProxyController {
   async getBookingDetail(@Param('id') id: string, @Req() req: Request) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const token = req.headers['authorization'] || '';
-    // Prevent interfering with other reserved routes if necessary
-    if (id === 'my-bookings' || id === 'stats' || id === 'check-reviewed') {
-      // This is a bit tricky since @Get(':id') might catch them if order is wrong
-      // But we put them before in real Nestjs or use regex
-    }
-    return await this.gatewayBookingService.getDetailBooking(userId, id, token);
+    const booking = await this.gatewayBookingService.getDetailBooking(userId, id, token);
+    return new ResponseData(booking, HttpStatus.SUCCESS, HttpMessage.SUCCESS);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
