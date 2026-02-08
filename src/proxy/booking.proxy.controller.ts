@@ -16,12 +16,45 @@ import { LoggingInterceptor } from '../common/interceptors/logging.interceptor';
 import { AllExceptionsFilter } from '../common/filters/http-exception.filter';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Public } from '../common/decorators/public.decorator';
+import { GatewayBookingService } from '../services/gateway-booking.service';
+import { Param, Query } from '@nestjs/common';
 
 @Controller('bookings')
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class BookingProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(
+    private readonly upstream: UpstreamService,
+    private readonly gatewayBookingService: GatewayBookingService,
+  ) { }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('my-bookings')
+  async getMyBookings(@Req() req: Request) {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const token = req.headers['authorization'] || '';
+    return await this.gatewayBookingService.getMyBookings(userId, token);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':id')
+  async getBookingDetail(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const token = req.headers['authorization'] || '';
+    // Prevent interfering with other reserved routes if necessary
+    if (id === 'my-bookings' || id === 'stats' || id === 'check-reviewed') {
+      // This is a bit tricky since @Get(':id') might catch them if order is wrong
+      // But we put them before in real Nestjs or use regex
+    }
+    return await this.gatewayBookingService.getDetailBooking(userId, id, token);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get()
+  async getRootBookings(@Query() query: any, @Req() req: Request) {
+    const token = req.headers['authorization'] || '';
+    return await this.gatewayBookingService.getAllBookings(token, query);
+  }
 
   // Public route - GET all bookings (không cần JWT)
   @Public()

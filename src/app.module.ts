@@ -19,6 +19,8 @@ import { memoryStorage } from 'multer';
 import { AppController } from './app.controller';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { GatewayReviewService } from './services/gateway-review.service';
+import { GatewayBookingService } from './services/gateway-booking.service';
+import { GatewayCommonService } from './services/gateway-common.service';
 
 @Module({
   imports: [
@@ -49,7 +51,7 @@ import { GatewayReviewService } from './services/gateway-review.service';
     ReviewProxyController,
     PostCategoriesProxyController,
   ],
-  providers: [AppConfigService, UpstreamService, GatewayReviewService],
+  providers: [AppConfigService, UpstreamService, GatewayReviewService, GatewayBookingService, GatewayCommonService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
