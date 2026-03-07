@@ -22,9 +22,6 @@ services:
       RATE_LIMIT_TTL: ${RATE_LIMIT_TTL}
       RATE_LIMIT_REQ: ${RATE_LIMIT_REQ}
       REFRESH_ENDPOINT: ${REFRESH_ENDPOINT}
-    volumes:
-      - .:/app
-      - /app/node_modules
     networks:
       my_custom_network:
         ipv4_address: ${APP_IP}
