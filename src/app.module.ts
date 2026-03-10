@@ -51,7 +51,13 @@ import { GatewayCommonService } from './services/gateway-common.service';
     ReviewProxyController,
     PostCategoriesProxyController,
   ],
-  providers: [AppConfigService, UpstreamService, GatewayReviewService, GatewayBookingService, GatewayCommonService],
+  providers: [
+    AppConfigService,
+    UpstreamService,
+    GatewayReviewService,
+    GatewayBookingService,
+    GatewayCommonService,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
@@ -60,4 +66,3 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
-

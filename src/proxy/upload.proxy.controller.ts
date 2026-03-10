@@ -22,7 +22,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class UploadProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   // Public route - GET all uploads (không cần JWT)
   @Public()

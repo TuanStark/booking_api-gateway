@@ -30,7 +30,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 )
 @UseFilters(AllExceptionsFilter)
 export class PostCategoriesProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   @Public()
   @Get(['*', ''])
@@ -47,7 +47,8 @@ export class PostCategoriesProxyController {
 
   private async forward(req: Request, res: Response) {
     try {
-      let upstreamPath = req.originalUrl.match(/^\/post-categories(.*)/)?.[1] || '/';
+      let upstreamPath =
+        req.originalUrl.match(/^\/post-categories(.*)/)?.[1] || '/';
 
       if (upstreamPath === '/') {
         upstreamPath = '';
@@ -55,7 +56,7 @@ export class PostCategoriesProxyController {
 
       const extraHeaders: Record<string, string> = {};
       if (req.headers.authorization) {
-        extraHeaders.authorization = req.headers.authorization as string;
+        extraHeaders.authorization = req.headers.authorization;
       }
       if ((req as any).user?.sub) {
         extraHeaders['x-user-id'] = (req as any).user.sub;
@@ -86,4 +87,3 @@ export class PostCategoriesProxyController {
     }
   }
 }
-

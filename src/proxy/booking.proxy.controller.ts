@@ -28,14 +28,17 @@ export class BookingProxyController {
   constructor(
     private readonly upstream: UpstreamService,
     private readonly gatewayBookingService: GatewayBookingService,
-  ) { }
+  ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('my-bookings')
   async getMyBookings(@Req() req: Request) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const token = req.headers['authorization'] || '';
-    const bookings = await this.gatewayBookingService.getMyBookings(userId, token);
+    const bookings = await this.gatewayBookingService.getMyBookings(
+      userId,
+      token,
+    );
     return new ResponseData(bookings, HttpStatus.SUCCESS, HttpMessage.SUCCESS);
   }
 
@@ -44,7 +47,11 @@ export class BookingProxyController {
   async getBookingDetail(@Param('id') id: string, @Req() req: Request) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const token = req.headers['authorization'] || '';
-    const booking = await this.gatewayBookingService.getDetailBooking(userId, id, token);
+    const booking = await this.gatewayBookingService.getDetailBooking(
+      userId,
+      id,
+      token,
+    );
     return new ResponseData(booking, HttpStatus.SUCCESS, HttpMessage.SUCCESS);
   }
 

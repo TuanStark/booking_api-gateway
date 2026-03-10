@@ -26,11 +26,15 @@ export class ReviewProxyController {
   constructor(
     private readonly upstream: UpstreamService,
     private readonly gatewayReviewService: GatewayReviewService,
-  ) { }
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('/')
-  async createReview(@Req() req: Request, @Body() body: any, @Res() res: Response) {
+  async createReview(
+    @Req() req: Request,
+    @Body() body: any,
+    @Res() res: Response,
+  ) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const result = await this.gatewayReviewService.createReview(userId, body);
     return res.status(201).json(result);
@@ -61,7 +65,7 @@ export class ReviewProxyController {
 
       const extraHeaders: Record<string, string> = {};
       if (req.headers.authorization) {
-        extraHeaders.authorization = req.headers.authorization as string;
+        extraHeaders.authorization = req.headers.authorization;
       }
       if ((req as any).user?.sub) {
         extraHeaders['x-user-id'] = (req as any).user.sub;

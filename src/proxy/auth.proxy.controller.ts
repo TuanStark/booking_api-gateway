@@ -4,7 +4,7 @@ import express from 'express';
 
 @Controller(['auth', 'auths']) // Hỗ trợ cả /auth và /auths
 export class AuthProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   @All(['*', ''])
   async proxyAuth(@Req() req: express.Request, @Res() res: express.Response) {

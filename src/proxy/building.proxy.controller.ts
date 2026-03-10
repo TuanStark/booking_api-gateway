@@ -31,7 +31,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 )
 @UseFilters(AllExceptionsFilter)
 export class BuildingProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   @Public()
   @Get(['*', ''])
@@ -59,7 +59,7 @@ export class BuildingProxyController {
 
       const extraHeaders: Record<string, string> = {};
       if (req.headers.authorization) {
-        extraHeaders.authorization = req.headers.authorization as string;
+        extraHeaders.authorization = req.headers.authorization;
       }
       if ((req as any).user?.sub) {
         extraHeaders['x-user-id'] = (req as any).user.sub;

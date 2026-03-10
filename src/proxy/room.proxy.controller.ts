@@ -23,7 +23,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class RoomProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   // === PUBLIC: Tất cả GET requests (không cần JWT) ===
   @Public()

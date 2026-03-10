@@ -23,7 +23,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class PaymentProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   @Public()
   @Post('webhook')
@@ -34,7 +34,7 @@ export class PaymentProxyController {
         '/payments/webhook',
         req.method,
         req, // raw body needed for signature verification!
-        {}   // no extra headers usually
+        {}, // no extra headers usually
       );
 
       // Important: forward headers like content-type, stripe-signature, etc.
