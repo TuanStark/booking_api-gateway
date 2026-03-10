@@ -71,6 +71,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create keys folder from secrets
+        run: |
+          mkdir -p keys
+          # Ghi nội dung key từ GitHub Secrets (nếu có) vào file; 
+          # nếu chưa có secrets, bước này chỉ tạo folder rỗng.
+          if [ -n "${{ secrets.API_GATEWAY_JWT_PUBLIC_KEY }}" ]; then
+            echo "${{ secrets.API_GATEWAY_JWT_PUBLIC_KEY }}" > keys/jwt.public.pem
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
