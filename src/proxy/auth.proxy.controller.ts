@@ -45,7 +45,7 @@ export class AuthProxyController {
       );
 
       console.log('✅ Response received:', result.status);
-      res.json(result);
+      res.status(result.status).json(result);
     } catch (error) {
       console.error('❌ Proxy error:', error);
       res.status(500).json({ error: 'Internal server error' });
