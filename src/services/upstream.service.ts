@@ -208,6 +208,7 @@ export class UpstreamService {
           timeout: 300000, // 5 phút – đủ cho file 2GB+
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
+          maxRedirects: 0, // proxy phải trả redirect từ upstream (MoMo return, VNPay, …)
           validateStatus: () => true, // luôn resolve
           // KHÔNG ĐỘNG VÀO transformRequest – đây là chìa khóa!
         }),
