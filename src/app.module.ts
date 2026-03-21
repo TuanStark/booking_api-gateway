@@ -13,6 +13,7 @@ import { BuildingProxyController } from './proxy/building.proxy.controller';
 import { RoomProxyController } from './proxy/room.proxy.controller';
 import { PostProxyController } from './proxy/post.proxy.controller';
 import { ReviewProxyController } from './proxy/review.proxy.controller';
+import { RatingStatsProxyController } from './proxy/rating-stats.proxy.controller';
 import { PostCategoriesProxyController } from './proxy/post-categories.proxy.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -49,6 +50,7 @@ import { GatewayCommonService } from './services/gateway-common.service';
     RoomProxyController,
     PostProxyController,
     ReviewProxyController,
+    RatingStatsProxyController,
     PostCategoriesProxyController,
   ],
   providers: [

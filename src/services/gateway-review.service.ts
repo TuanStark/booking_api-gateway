@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, HttpException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../config/config.service';
@@ -22,7 +22,6 @@ export class GatewayReviewService {
       ratingService,
       comment,
     } = body;
-    const authHeader = `Bearer ${/* how to get token here? */ ''}`; // This service seems to missing token passing in some parts, but let's focus on refactoring error handling first
 
     // 1. Check if user has booked the room
     const bookingUrl = `${this.configService.bookingServiceUrl}/bookings/check-reviewed`;
@@ -50,7 +49,7 @@ export class GatewayReviewService {
       );
     }
 
-    // 2. Create review with bookingId
+    // 2. Create review with server-resolved bookingId (client bookingId is not trusted)
     const reviewUrl = `${this.configService.reviewServiceUrl}/reviews`;
     try {
       const reviewRes = await firstValueFrom(
@@ -58,7 +57,7 @@ export class GatewayReviewService {
           reviewUrl,
           {
             roomId,
-            bookingId, // Inject bookingId
+            bookingId,
             ratingOverall,
             ratingClean,
             ratingLocation,
@@ -68,12 +67,25 @@ export class GatewayReviewService {
           },
           {
             headers: { 'x-user-id': userId },
+            validateStatus: () => true,
           },
         ),
       );
 
+      if (reviewRes.status >= 400) {
+        const payload = reviewRes.data as any;
+        const message =
+          payload?.message ||
+          payload?.error ||
+          `Review service returned ${reviewRes.status}`;
+        throw new HttpException(message, reviewRes.status);
+      }
+
       return reviewRes.data;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.commonService.handleServiceError(error, 'create review');
     }
   }

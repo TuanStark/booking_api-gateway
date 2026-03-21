@@ -7,7 +7,7 @@ export class AppConfigService {
     return process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
   }
   get userServiceUrl(): string {
-    return process.env.USER_SERVICE_URL || 'http://localhost:3003';
+    return process.env.USER_SERVICE_URL || 'http://localhost:3001';
   }
   get buildingServiceurl(): string {
     return process.env.BUILDING_SERVICE_URL || 'http://localhost:3002';

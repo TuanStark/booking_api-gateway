@@ -37,7 +37,13 @@ export class ReviewProxyController {
   ) {
     const userId = (req as any).user?.sub || (req as any).user?.id;
     const result = await this.gatewayReviewService.createReview(userId, body);
-    return res.status(201).json(result);
+    const sc =
+      result && typeof result === 'object' && result !== null
+        ? (result as { statusCode?: number }).statusCode
+        : undefined;
+    const httpStatus =
+      typeof sc === 'number' && sc >= 200 && sc < 600 ? sc : 201;
+    return res.status(httpStatus).json(result);
   }
 
   @Public()

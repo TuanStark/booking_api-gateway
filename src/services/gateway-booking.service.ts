@@ -115,4 +115,61 @@ export class GatewayBookingService {
         })) || [],
     }));
   }
+
+  /**
+   * Completed stay (booking) + chưa có review cho booking đó.
+   * Tránh UI còn bookingId nhưng POST /reviews luôn 409.
+   */
+  async checkReviewEligibility(
+    roomId: string,
+    userId: string,
+    authHeader: string,
+  ): Promise<{ bookingId: string | null; alreadyReviewed: boolean }> {
+    if (!roomId?.trim()) {
+      return { bookingId: null, alreadyReviewed: false };
+    }
+
+    const auth = !authHeader
+      ? ''
+      : authHeader.startsWith('Bearer ')
+        ? authHeader
+        : `Bearer ${authHeader}`;
+
+    const bookingUrl = `${this.configService.bookingServiceUrl}/bookings/check-reviewed`;
+    const bookingRes = await firstValueFrom(
+      this.httpService.get(bookingUrl, {
+        params: { roomId },
+        headers: {
+          'x-user-id': userId,
+          ...(auth ? { Authorization: auth } : {}),
+        },
+      }),
+    );
+
+    let bookingId: string | null =
+      bookingRes.data?.bookingId != null
+        ? String(bookingRes.data.bookingId)
+        : null;
+
+    if (!bookingId) {
+      return { bookingId: null, alreadyReviewed: false };
+    }
+
+    const existsUrl = `${this.configService.reviewServiceUrl}/reviews/bookings/${encodeURIComponent(bookingId)}/exists`;
+    const existsRes = await firstValueFrom(
+      this.httpService.get(existsUrl, {
+        validateStatus: () => true,
+      }),
+    );
+
+    if (existsRes.status >= 400) {
+      return { bookingId, alreadyReviewed: false };
+    }
+
+    if (existsRes.data?.exists === true) {
+      return { bookingId: null, alreadyReviewed: true };
+    }
+
+    return { bookingId, alreadyReviewed: false };
+  }
 }

@@ -42,6 +42,35 @@ export class BookingProxyController {
     return new ResponseData(bookings, HttpStatus.SUCCESS, HttpMessage.SUCCESS);
   }
 
+  /** Must be registered before @Get(':id') so "check-reviewed" is not treated as an id. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('check-reviewed')
+  async checkReviewed(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('roomId') roomId: string,
+  ) {
+    try {
+      const authHeader = (req.headers['authorization'] as string) || '';
+      const userId = (req as any).user?.sub || (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const payload = await this.gatewayBookingService.checkReviewEligibility(
+        roomId,
+        userId,
+        authHeader,
+      );
+      return res.status(200).json(payload);
+    } catch (error: any) {
+      const status = error?.status || 500;
+      return res
+        .status(status)
+        .json({ error: error.message || 'Internal Gateway Error' });
+    }
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async getBookingDetail(@Param('id') id: string, @Req() req: Request) {
