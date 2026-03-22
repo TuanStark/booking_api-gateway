@@ -23,8 +23,9 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    // Check if user has required role
-    const userRole = user.role?.name || user.role;
+    // Prefer explicit roleName; role may be string (access token) or nested object (legacy)
+    const userRole =
+      user.roleName || user.role?.name || user.role;
     return requiredRoles.includes(userRole);
   }
 }
