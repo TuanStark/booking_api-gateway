@@ -8,6 +8,7 @@ import {
   UseFilters,
   Get,
   UnauthorizedException,
+  Param,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { UpstreamService } from '../services/upstream.service';
@@ -19,11 +20,39 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 
+import { GatewayRoomService } from '../services/gateway-room.service';
+
 @Controller('rooms')
 @UseInterceptors(LoggingInterceptor, AnyFilesInterceptor())
 @UseFilters(AllExceptionsFilter)
 export class RoomProxyController {
-  constructor(private readonly upstream: UpstreamService) {}
+  constructor(
+    private readonly upstream: UpstreamService,
+    private readonly gatewayRoomService: GatewayRoomService,
+  ) {}
+
+  // === COMPOSITE: Room Details BFF ===
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Get(':roomId/details')
+  async getRoomDetails(
+    @Param('roomId') roomId: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const token = req.headers.authorization;
+    if (!token) {
+      throw new UnauthorizedException('Invalid JWT');
+    }
+    
+    // GatewayRoomService returns normalized DTO, we wrap it in HTTP success
+    const data = await this.gatewayRoomService.getRoomDetailsComposite(roomId, token);
+    return res.status(200).json({
+      status: 200,
+      message: 'Success',
+      data: data
+    });
+  }
 
   // === PUBLIC: Tất cả GET requests (không cần JWT) ===
   @Public()

@@ -22,6 +22,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { GatewayReviewService } from './services/gateway-review.service';
 import { GatewayBookingService } from './services/gateway-booking.service';
 import { GatewayCommonService } from './services/gateway-common.service';
+import { GatewayRoomService } from './services/gateway-room.service';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { GatewayCommonService } from './services/gateway-common.service';
     GatewayReviewService,
     GatewayBookingService,
     GatewayCommonService,
+    GatewayRoomService,
   ],
 })
 export class AppModule implements NestModule {
