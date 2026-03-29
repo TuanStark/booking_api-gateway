@@ -33,8 +33,7 @@ export class ChatProxyController {
   }
 
   /** path-to-regexp v8+: dùng tên splat, không dùng hậu tố `*` */
-  @All('conversations')
-  @All('conversations/*path')
+  @All(['conversations', 'conversations/*path'])
   async proxyConversations(@Req() req: express.Request, @Res() res: express.Response) {
     const path = req.url.replace(/^\/chat/, '');
     const result = await this.upstream.forwardRequest(
@@ -47,8 +46,7 @@ export class ChatProxyController {
     res.status(result.status).json(result.data);
   }
 
-  @All('messages')
-  @All('messages/*path')
+  @All(['messages', 'messages/*path'])
   async proxyMessages(@Req() req: express.Request, @Res() res: express.Response) {
     const path = req.url.replace(/^\/chat/, '');
     const result = await this.upstream.forwardRequest(
