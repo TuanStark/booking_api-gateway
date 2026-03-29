@@ -15,6 +15,7 @@ import { PostProxyController } from './proxy/post.proxy.controller';
 import { ReviewProxyController } from './proxy/review.proxy.controller';
 import { RatingStatsProxyController } from './proxy/rating-stats.proxy.controller';
 import { PostCategoriesProxyController } from './proxy/post-categories.proxy.controller';
+import { ChatProxyController } from './proxy/chat.proxy.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AppController } from './app.controller';
@@ -53,6 +54,7 @@ import { GatewayRoomService } from './services/gateway-room.service';
     ReviewProxyController,
     RatingStatsProxyController,
     PostCategoriesProxyController,
+    ChatProxyController,
   ],
   providers: [
     AppConfigService,

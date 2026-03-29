@@ -45,6 +45,9 @@ export class UpstreamService {
       review:
         this.configService.get<string>('REVIEW_SERVICE_URL') ||
         'http://review-service:3008',
+      chat:
+        this.configService.get<string>('CHAT_SERVICE_URL') ||
+        'http://chat-service:3013',
     };
 
     if (!map[service]) {
