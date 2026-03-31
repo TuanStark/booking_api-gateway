@@ -24,6 +24,7 @@ import { GatewayReviewService } from './services/gateway-review.service';
 import { GatewayBookingService } from './services/gateway-booking.service';
 import { GatewayCommonService } from './services/gateway-common.service';
 import { GatewayRoomService } from './services/gateway-room.service';
+import { NotificationProxyController } from './proxy/notification.proxy.controller';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { GatewayRoomService } from './services/gateway-room.service';
     RoomProxyController,
     PostProxyController,
     ReviewProxyController,
+    NotificationProxyController,
     RatingStatsProxyController,
     PostCategoriesProxyController,
     ChatProxyController,

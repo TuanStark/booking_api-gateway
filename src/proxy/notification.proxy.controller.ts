@@ -1,6 +1,7 @@
 import {
   All,
   Controller,
+  Post,
   Req,
   Res,
   UseGuards,
@@ -24,29 +25,30 @@ import { Roles } from '../common/decorators/roles.decorator';
 export class NotificationProxyController {
   constructor(private readonly upstream: UpstreamService) {}
 
-  // Public route - GET all notifications (không cần JWT)
+  private async forward(
+    req: Request,
+    res: Response,
+    extraHeaders: Record<string, string> = {},
+  ) {
+    const path = req.originalUrl.replace(/^\/notifications/, '');
+    const result = await this.upstream.forwardRequest(
+      'notification',
+      `/notifications${path}`,
+      req.method,
+      req,
+      extraHeaders,
+    );
+
+    res.set(result.headers || {});
+    res.status(result.status || 200).json(result.data);
+  }
+
+  // Public contact form submission
   @Public()
-  @Get(['*', ''])
-  async getAllNotifications(@Req() req: Request, @Res() res: Response) {
+  @Post('contact')
+  async submitContactForm(@Req() req: Request, @Res() res: Response) {
     try {
-      const authHeader = req.headers['authorization'];
-      const path = req.originalUrl.replace(/^\/notifications/, '');
-
-      const extraHeaders: Record<string, string> = {};
-      if (authHeader) {
-        extraHeaders.authorization = authHeader;
-      }
-
-      const result = await this.upstream.forwardRequest(
-        'notifications',
-        `/notifications${path}`,
-        req.method,
-        req,
-        extraHeaders,
-      );
-
-      res.set(result.headers || {});
-      res.status(result.status || 200).json(result.data);
+      await this.forward(req, res);
     } catch (error) {
       const status = (error && error.status) || 500;
       res
@@ -62,8 +64,6 @@ export class NotificationProxyController {
   async proxyNotification(@Req() req: Request, @Res() res: Response) {
     try {
       const userId = (req as any).user?.sub || (req as any).user?.id;
-      const path = req.originalUrl.replace(/^\/notifications/, '');
-
       const extraHeaders: Record<string, string> = {};
       const authHeader = req.headers['authorization'];
       if (authHeader) {
@@ -73,16 +73,7 @@ export class NotificationProxyController {
         extraHeaders['x-user-id'] = userId;
       }
 
-      const result = await this.upstream.forwardRequest(
-        'notifications',
-        `/notifications${path}`,
-        req.method,
-        req,
-        extraHeaders,
-      );
-
-      res.set(result.headers || {});
-      res.status(result.status || 200).json(result.data);
+      await this.forward(req, res, extraHeaders);
     } catch (error) {
       const status = (error && error.status) || 500;
       res
