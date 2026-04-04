@@ -169,6 +169,92 @@ export class DashboardService {
   }
 
   /**
+   * Get Calendar Composite
+   * Fetches rooms (optionally filtered) and then their active bookings within a date range
+   */
+  async getCalendarComposite(
+    startDate: string,
+    endDate: string,
+    buildingId?: string,
+    roomId?: string,
+    token?: string,
+  ) {
+    try {
+      this.logger.log(`Fetching calendar composite`);
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = token.startsWith('Bearer ')
+          ? token
+          : `Bearer ${token}`;
+      }
+
+      // Step 1: Fetch rooms
+      let roomsUrl = `${this.getServiceUrl('rooms')}/rooms?limit=1000`;
+      if (buildingId) {
+        roomsUrl += `&buildingId=${buildingId}`;
+      }
+
+      const roomsRes = await firstValueFrom(
+        this.httpService.get(roomsUrl, { headers, timeout: 10000 }),
+      );
+      
+      const roomsResponseData = roomsRes.data?.data ?? roomsRes.data;
+      let rooms = Array.isArray(roomsResponseData) ? roomsResponseData : (roomsResponseData?.data ?? []);
+      
+      if (roomId) {
+        rooms = rooms.filter((r: any) => r.id === roomId);
+      }
+
+      if (!rooms.length) {
+        return { rooms: [] };
+      }
+
+      const roomIds = rooms.map((r: any) => r.id);
+
+      // Step 2: Fetch bookings for these rooms
+      const bookingsUrl = `${this.getServiceUrl('booking')}/bookings/calendar-filter?roomIds=${roomIds.join(',')}&startDate=${startDate}&endDate=${endDate}`;
+      let bookings: any[] = [];
+      
+      try {
+        const bookingsRes = await firstValueFrom(
+          this.httpService.get(bookingsUrl, { headers, timeout: 10000 }),
+        );
+        const bookingsData = bookingsRes.data?.data ?? bookingsRes.data;
+        bookings = Array.isArray(bookingsData) ? bookingsData : [];
+      } catch (err: any) {
+        this.logger.warn(`Failed to fetch calendar bookings: ${err.message}`);
+        // gracefully continue with no bookings if booking service fails
+      }
+
+      // Step 3: Combine data (Nest bookings inside rooms)
+      const mappedRooms = rooms.map((room: any) => {
+        // Find bookings matching this room
+        const roomBookings = bookings.filter(b => {
+          // booking.details[x].roomId === room.id
+          if (b.details && Array.isArray(b.details)) {
+            return b.details.some((d: any) => d.roomId === room.id);
+          }
+          return b.roomId === room.id;
+        });
+
+        return {
+          ...room,
+          bookings: roomBookings,
+        };
+      });
+
+      return {
+        rooms: mappedRooms
+      };
+
+    } catch (error: any) {
+      this.logger.error(`Error in getBuildingCalendarComposite: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Get service base URL from config
    */
   private getServiceUrl(service: string): string {
