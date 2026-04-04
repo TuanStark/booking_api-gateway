@@ -24,6 +24,9 @@ export class AppConfigService {
   get reviewServiceUrl(): string {
     return process.env.REVIEW_SERVICE_URL || 'http://localhost:3008';
   }
+  get paymentServiceUrl(): string {
+    return process.env.PAYMENT_SERVICE_URL || 'http://localhost:3004';
+  }
 
   get port(): number {
     return Number(process.env.PORT || 4000);
