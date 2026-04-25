@@ -38,19 +38,22 @@ export class RoomProxyController {
   async getRoomDetails(
     @Param('roomId') roomId: string,
     @Req() req: Request,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     const token = req.headers.authorization;
     if (!token) {
       throw new UnauthorizedException('Invalid JWT');
     }
-    
+
     // GatewayRoomService returns normalized DTO, we wrap it in HTTP success
-    const data = await this.gatewayRoomService.getRoomDetailsComposite(roomId, token);
+    const data = await this.gatewayRoomService.getRoomDetailsComposite(
+      roomId,
+      token,
+    );
     return res.status(200).json({
       status: 200,
       message: 'Success',
-      data: data
+      data: data,
     });
   }
 

@@ -3,8 +3,7 @@
  */
 export function toPaymentServicePath(originalUrl: string): string {
   const qIndex = originalUrl.indexOf('?');
-  const pathname =
-    qIndex >= 0 ? originalUrl.slice(0, qIndex) : originalUrl;
+  const pathname = qIndex >= 0 ? originalUrl.slice(0, qIndex) : originalUrl;
   const query = qIndex >= 0 ? originalUrl.slice(qIndex) : '';
 
   let suffix = '';

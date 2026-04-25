@@ -24,8 +24,7 @@ export class RolesGuard implements CanActivate {
     }
 
     // Prefer explicit roleName; role may be string (access token) or nested object (legacy)
-    const userRole =
-      user.roleName || user.role?.name || user.role;
+    const userRole = user.roleName || user.role?.name || user.role;
     return requiredRoles.includes(userRole);
   }
 }

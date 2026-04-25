@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../common/guards/jwt.guard';
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatProxyController {
-  constructor(private readonly upstream: UpstreamService) { }
+  constructor(private readonly upstream: UpstreamService) {}
 
   private identityHeaders(req: express.Request): Record<string, string> {
     const extra: Record<string, string> = {};
@@ -34,7 +34,10 @@ export class ChatProxyController {
 
   /** path-to-regexp v8+: dùng tên splat, không dùng hậu tố `*` */
   @All(['conversations', 'conversations/*path'])
-  async proxyConversations(@Req() req: express.Request, @Res() res: express.Response) {
+  async proxyConversations(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
     const path = req.url.replace(/^\/chat/, '');
     const result = await this.upstream.forwardRequest(
       'chat',
@@ -47,7 +50,10 @@ export class ChatProxyController {
   }
 
   @All(['messages', 'messages/*path'])
-  async proxyMessages(@Req() req: express.Request, @Res() res: express.Response) {
+  async proxyMessages(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
     const path = req.url.replace(/^\/chat/, '');
     const result = await this.upstream.forwardRequest(
       'chat',

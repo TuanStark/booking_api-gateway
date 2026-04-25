@@ -41,7 +41,7 @@ export class PaymentProxyController {
     const authHeader = req.headers['authorization'];
     const extraHeaders: Record<string, string> = {};
     if (authHeader) {
-      extraHeaders.authorization = authHeader as string;
+      extraHeaders.authorization = authHeader;
     }
     const result = await this.upstream.forwardRequest(
       'payment',
@@ -64,13 +64,14 @@ export class PaymentProxyController {
     res: express.Response,
   ) {
     const authHeader = req.headers['authorization'];
-    const userId = (req as express.Request & { user?: { sub?: string; id?: string } })
-      .user?.sub || (req as express.Request & { user?: { id?: string } }).user?.id;
+    const userId =
+      (req as express.Request & { user?: { sub?: string; id?: string } }).user
+        ?.sub || (req as express.Request & { user?: { id?: string } }).user?.id;
 
     const upstreamPath = toPaymentServicePath(req.originalUrl);
     const extraHeaders: Record<string, string> = {};
     if (authHeader) {
-      extraHeaders.authorization = authHeader as string;
+      extraHeaders.authorization = authHeader;
     }
     if (userId) {
       extraHeaders['x-user-id'] = userId;
@@ -142,10 +143,7 @@ export class PaymentProxyController {
 
   @Public()
   @Get('momo/return')
-  async momoReturn(
-    @Req() req: express.Request,
-    @Res() res: express.Response,
-  ) {
+  async momoReturn(@Req() req: express.Request, @Res() res: express.Response) {
     try {
       return await this.forwardPublicPayment(req, res);
     } catch (error: unknown) {
@@ -158,10 +156,7 @@ export class PaymentProxyController {
 
   @Public()
   @Post('momo/ipn')
-  async momoIpn(
-    @Req() req: express.Request,
-    @Res() res: express.Response,
-  ) {
+  async momoIpn(@Req() req: express.Request, @Res() res: express.Response) {
     try {
       return await this.forwardPublicPayment(req, res);
     } catch (error: unknown) {
@@ -174,10 +169,7 @@ export class PaymentProxyController {
 
   @Public()
   @Get('vnpay/return')
-  async vnpayReturn(
-    @Req() req: express.Request,
-    @Res() res: express.Response,
-  ) {
+  async vnpayReturn(@Req() req: express.Request, @Res() res: express.Response) {
     try {
       return await this.forwardPublicPayment(req, res);
     } catch (error: unknown) {
@@ -190,10 +182,7 @@ export class PaymentProxyController {
 
   @Public()
   @Get('vnpay/ipn')
-  async vnpayIpnGet(
-    @Req() req: express.Request,
-    @Res() res: express.Response,
-  ) {
+  async vnpayIpnGet(@Req() req: express.Request, @Res() res: express.Response) {
     try {
       return await this.forwardPublicPayment(req, res);
     } catch (error: unknown) {
@@ -208,10 +197,7 @@ export class PaymentProxyController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('stats')
-  async proxyStats(
-    @Req() req: express.Request,
-    @Res() res: express.Response,
-  ) {
+  async proxyStats(@Req() req: express.Request, @Res() res: express.Response) {
     return this.forwardAuthenticatedPayment(req, res);
   }
 

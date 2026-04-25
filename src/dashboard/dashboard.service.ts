@@ -198,10 +198,12 @@ export class DashboardService {
       const roomsRes = await firstValueFrom(
         this.httpService.get(roomsUrl, { headers, timeout: 10000 }),
       );
-      
+
       const roomsResponseData = roomsRes.data?.data ?? roomsRes.data;
-      let rooms = Array.isArray(roomsResponseData) ? roomsResponseData : (roomsResponseData?.data ?? []);
-      
+      let rooms = Array.isArray(roomsResponseData)
+        ? roomsResponseData
+        : (roomsResponseData?.data ?? []);
+
       if (roomId) {
         rooms = rooms.filter((r: any) => r.id === roomId);
       }
@@ -215,7 +217,7 @@ export class DashboardService {
       // Step 2: Fetch bookings for these rooms
       const bookingsUrl = `${this.getServiceUrl('booking')}/bookings/calendar-filter?roomIds=${roomIds.join(',')}&startDate=${startDate}&endDate=${endDate}`;
       let bookings: any[] = [];
-      
+
       try {
         const bookingsRes = await firstValueFrom(
           this.httpService.get(bookingsUrl, { headers, timeout: 10000 }),
@@ -230,7 +232,7 @@ export class DashboardService {
       // Step 3: Combine data (Nest bookings inside rooms)
       const mappedRooms = rooms.map((room: any) => {
         // Find bookings matching this room
-        const roomBookings = bookings.filter(b => {
+        const roomBookings = bookings.filter((b) => {
           // booking.details[x].roomId === room.id
           if (b.details && Array.isArray(b.details)) {
             return b.details.some((d: any) => d.roomId === room.id);
@@ -245,11 +247,12 @@ export class DashboardService {
       });
 
       return {
-        rooms: mappedRooms
+        rooms: mappedRooms,
       };
-
     } catch (error: any) {
-      this.logger.error(`Error in getBuildingCalendarComposite: ${error.message}`);
+      this.logger.error(
+        `Error in getBuildingCalendarComposite: ${error.message}`,
+      );
       throw error;
     }
   }

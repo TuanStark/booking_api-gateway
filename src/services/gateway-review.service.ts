@@ -73,7 +73,7 @@ export class GatewayReviewService {
       );
 
       if (reviewRes.status >= 400) {
-        const payload = reviewRes.data as any;
+        const payload = reviewRes.data;
         const message =
           payload?.message ||
           payload?.error ||

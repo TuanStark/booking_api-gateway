@@ -146,7 +146,7 @@ export class GatewayBookingService {
       }),
     );
 
-    let bookingId: string | null =
+    const bookingId: string | null =
       bookingRes.data?.bookingId != null
         ? String(bookingRes.data.bookingId)
         : null;

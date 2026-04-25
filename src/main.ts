@@ -4,10 +4,18 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
+import {
+  json,
+  urlencoded,
+  type Request,
+  type Response,
+  type NextFunction,
+} from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-type SocketIoProxy = ReturnType<typeof createProxyMiddleware<Request, Response>> & {
+type SocketIoProxy = ReturnType<
+  typeof createProxyMiddleware<Request, Response>
+> & {
   upgrade: (req: IncomingMessage, socket: unknown, head: Buffer) => void;
 };
 
@@ -22,14 +30,19 @@ function applyCrossOriginHeaders(req: IncomingMessage, res: Response): void {
   }
 }
 
-function socketIoOptionsMiddleware(req: Request, res: Response, next: NextFunction) {
+function socketIoOptionsMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const path = req.originalUrl || req.url || '';
   if (!path.startsWith('/socket.io')) return next();
   if (req.method !== 'OPTIONS') return next();
   applyCrossOriginHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   const reqHdr = req.headers['access-control-request-headers'];
-  if (typeof reqHdr === 'string') res.setHeader('Access-Control-Allow-Headers', reqHdr);
+  if (typeof reqHdr === 'string')
+    res.setHeader('Access-Control-Allow-Headers', reqHdr);
   res.setHeader('Access-Control-Max-Age', '86400');
   res.status(204).end();
 }
@@ -86,9 +99,7 @@ async function bootstrap() {
         }
       },
       error: (err, req, res, _target) => {
-        bootLogger.error(
-          `Socket.IO proxy → ${chatServiceUrl}: ${err.message}`,
-        );
+        bootLogger.error(`Socket.IO proxy → ${chatServiceUrl}: ${err.message}`);
         const out = res as Response;
         if (typeof out.writeHead !== 'function' || out.headersSent) return;
         applyCrossOriginHeaders(req as IncomingMessage, out);

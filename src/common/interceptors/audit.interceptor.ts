@@ -62,7 +62,11 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     // Capture "before" snapshot in parallel (best-effort) so we can render field-level diffs.
-    req.__auditBeforeStatePromise = this.captureBeforeState(req, method, rawPath);
+    req.__auditBeforeStatePromise = this.captureBeforeState(
+      req,
+      method,
+      rawPath,
+    );
 
     const start = Date.now();
 
@@ -81,14 +85,20 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   /** Fire-and-forget — audit failures must never interrupt the main request flow. */
-  private fireAuditEvent(req: any, statusCode: number, _duration: number): void {
+  private fireAuditEvent(
+    req: any,
+    statusCode: number,
+    _duration: number,
+  ): void {
     this.sendAudit(req, statusCode).catch((err) => {
       this.logger.warn(`Audit write failed: ${err?.message}`);
     });
   }
 
   private async sendAudit(req: any, statusCode: number): Promise<void> {
-    const user = req.user as { sub?: string; id?: string; email?: string } | undefined;
+    const user = req.user as
+      | { sub?: string; id?: string; email?: string }
+      | undefined;
 
     // Skip unauthenticated requests (e.g. public endpoints that accept POST)
     if (!user) return;
@@ -100,13 +110,19 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     const authServiceUrl =
-      this.configService.get<string>('AUTH_SERVICE_URL') ?? 'http://auth-service:3001';
+      this.configService.get<string>('AUTH_SERVICE_URL') ??
+      'http://auth-service:3001';
 
     const rawPath: string = req.originalUrl?.split('?')[0] ?? '';
     const method: string = (req.method as string).toUpperCase();
     const { resource, action, resourceId } = this.parseRoute(method, rawPath);
     const beforeState = await this.resolveBeforeState(req);
-    const metadata = this.buildMetadata({ req, action, resourceId, beforeState });
+    const metadata = this.buildMetadata({
+      req,
+      action,
+      resourceId,
+      beforeState,
+    });
 
     const payload: AuditPayload = {
       adminId: user.sub ?? user.id ?? 'unknown',
@@ -163,7 +179,9 @@ export class AuditInterceptor implements NestInterceptor {
     }
   }
 
-  private async resolveBeforeState(req: any): Promise<Record<string, unknown> | null> {
+  private async resolveBeforeState(
+    req: any,
+  ): Promise<Record<string, unknown> | null> {
     try {
       const promise = req.__auditBeforeStatePromise as
         | Promise<Record<string, unknown> | null>
@@ -177,7 +195,9 @@ export class AuditInterceptor implements NestInterceptor {
 
   private resolveServiceBaseUrl(resource: string): string | null {
     const urlMap: Record<string, string | undefined> = {
-      room: this.configService.get<string>('ROOM_SERVICE_URL') ?? 'http://room-service:3003',
+      room:
+        this.configService.get<string>('ROOM_SERVICE_URL') ??
+        'http://room-service:3003',
       building:
         this.configService.get<string>('BUILDING_SERVICE_URL') ??
         'http://building-service:3002',
@@ -190,10 +210,18 @@ export class AuditInterceptor implements NestInterceptor {
       review:
         this.configService.get<string>('REVIEW_SERVICE_URL') ??
         'http://review-service:3008',
-      post: this.configService.get<string>('POST_SERVICE_URL') ?? 'http://post-service:3010',
-      user: this.configService.get<string>('AUTH_SERVICE_URL') ?? 'http://auth-service:3001',
-      auth: this.configService.get<string>('AUTH_SERVICE_URL') ?? 'http://auth-service:3001',
-      chat: this.configService.get<string>('CHAT_SERVICE_URL') ?? 'http://chat-service:3013',
+      post:
+        this.configService.get<string>('POST_SERVICE_URL') ??
+        'http://post-service:3010',
+      user:
+        this.configService.get<string>('AUTH_SERVICE_URL') ??
+        'http://auth-service:3001',
+      auth:
+        this.configService.get<string>('AUTH_SERVICE_URL') ??
+        'http://auth-service:3001',
+      chat:
+        this.configService.get<string>('CHAT_SERVICE_URL') ??
+        'http://chat-service:3013',
       notification:
         this.configService.get<string>('NOTIFICATION_SERVICE_URL') ??
         'http://notification-service:3007',
@@ -239,15 +267,15 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     if (action !== 'UPDATE' && action !== 'CREATE' && action !== 'DELETE') {
-      return body && Object.keys(body).length > 0 ? { request: body } : undefined;
+      return body && Object.keys(body).length > 0
+        ? { request: body }
+        : undefined;
     }
 
     if (action === 'UPDATE') {
       const changes = this.computeFieldChanges(beforeState, body);
       const summary =
-        changes.length > 0
-          ? `Updated ${changes.length} field(s)`
-          : undefined;
+        changes.length > 0 ? `Updated ${changes.length} field(s)` : undefined;
 
       return {
         resourceId,
@@ -269,7 +297,9 @@ export class AuditInterceptor implements NestInterceptor {
 
     Object.entries(body).forEach(([key, value]) => {
       const lower = key.toLowerCase();
-      if (['password', 'token', 'refresh_token', 'access_token'].includes(lower)) {
+      if (
+        ['password', 'token', 'refresh_token', 'access_token'].includes(lower)
+      ) {
         result[key] = '[REDACTED]';
         return;
       }
@@ -299,7 +329,10 @@ export class AuditInterceptor implements NestInterceptor {
     return Object.keys(requestBody)
       .filter((field) => !['files', 'file'].includes(field))
       .map((field) => {
-        const beforeValue = this.normalizeFieldValue(field, beforeState?.[field]);
+        const beforeValue = this.normalizeFieldValue(
+          field,
+          beforeState?.[field],
+        );
         const afterValue = this.normalizeFieldValue(field, requestBody[field]);
         return { field, from: beforeValue, to: afterValue };
       })
@@ -310,7 +343,7 @@ export class AuditInterceptor implements NestInterceptor {
     if (a === b) return true;
     if (a == null && b == null) return true;
     if (a == null || b == null) return false;
-    return String(a) === String(b);
+    return this.formatValue(a) === this.formatValue(b);
   }
 
   private formatValue(value: unknown): string {
@@ -319,7 +352,7 @@ export class AuditInterceptor implements NestInterceptor {
       return `[${value.map((item) => this.formatValue(item)).join(', ')}]`;
     }
     if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
+    return String(value as string | number | boolean);
   }
 
   private normalizeFieldValue(field: string, value: unknown): unknown {
@@ -332,9 +365,15 @@ export class AuditInterceptor implements NestInterceptor {
 
     // For numeric-like fields, keep numbers consistent to avoid fake diffs ("10" vs 10).
     if (
-      ['squareMeter', 'price', 'capacity', 'bedCount', 'bathroomCount', 'floor', 'countCapacity'].includes(
-        field,
-      )
+      [
+        'squareMeter',
+        'price',
+        'capacity',
+        'bedCount',
+        'bathroomCount',
+        'floor',
+        'countCapacity',
+      ].includes(field)
     ) {
       const num = Number(value);
       if (!Number.isNaN(num)) return num;
@@ -370,9 +409,13 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     if (!Array.isArray(parsed)) {
-      if (parsed && typeof parsed === 'object' && 'name' in (parsed as Record<string, unknown>)) {
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'name' in (parsed as Record<string, unknown>)
+      ) {
         const name = (parsed as Record<string, unknown>).name;
-        return name ? [String(name)] : [];
+        return name ? [String(name as string | number | boolean)] : [];
       }
       return [];
     }
@@ -380,10 +423,19 @@ export class AuditInterceptor implements NestInterceptor {
     return parsed
       .map((item) => {
         if (typeof item === 'string') return item;
-        if (item && typeof item === 'object' && 'name' in (item as Record<string, unknown>)) {
-          return String((item as Record<string, unknown>).name ?? '');
+        if (
+          item &&
+          typeof item === 'object' &&
+          'name' in (item as Record<string, unknown>)
+        ) {
+          return String(
+            ((item as Record<string, unknown>).name as
+              | string
+              | number
+              | boolean) ?? '',
+          );
         }
-        return String(item ?? '');
+        return String((item as string | number | boolean) ?? '');
       })
       .filter((name) => Boolean(name))
       .sort((a, b) => a.localeCompare(b));
@@ -408,12 +460,23 @@ export class AuditInterceptor implements NestInterceptor {
 
     // Special cases first
     if (first === 'auth' || first === 'auths') {
-      if (second === 'login') return { resource: 'auth', action: 'LOGIN', resourceId: undefined };
-      if (second === 'logout') return { resource: 'auth', action: 'LOGOUT', resourceId: undefined };
+      if (second === 'login')
+        return { resource: 'auth', action: 'LOGIN', resourceId: undefined };
+      if (second === 'logout')
+        return { resource: 'auth', action: 'LOGOUT', resourceId: undefined };
       if (second === 'user') {
         const userId = segments[2];
-        const actionMap: Record<string, string> = { POST: 'CREATE_USER', PUT: 'UPDATE_USER', PATCH: 'UPDATE_USER', DELETE: 'DELETE_USER' };
-        return { resource: 'user', action: actionMap[method] ?? method, resourceId: userId };
+        const actionMap: Record<string, string> = {
+          POST: 'CREATE_USER',
+          PUT: 'UPDATE_USER',
+          PATCH: 'UPDATE_USER',
+          DELETE: 'DELETE_USER',
+        };
+        return {
+          resource: 'user',
+          action: actionMap[method] ?? method,
+          resourceId: userId,
+        };
       }
     }
 
@@ -452,8 +515,15 @@ export class AuditInterceptor implements NestInterceptor {
     const action = actionMap[method] ?? method;
 
     // resourceId: second segment if it looks like an ID (not a sub-route keyword)
-    const NON_ID_SEGMENTS = new Set(['stats', 'bulk-status', 'building', 'calendar', 'search']);
-    const resourceId = second && !NON_ID_SEGMENTS.has(second) ? second : undefined;
+    const NON_ID_SEGMENTS = new Set([
+      'stats',
+      'bulk-status',
+      'building',
+      'calendar',
+      'search',
+    ]);
+    const resourceId =
+      second && !NON_ID_SEGMENTS.has(second) ? second : undefined;
 
     return { resource, action, resourceId };
   }
