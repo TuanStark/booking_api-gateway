@@ -1,4 +1,5 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpModule } from '@nestjs/axios';
 import { AppConfigService } from './config/config.service';
 import { UpstreamService } from './services/upstream.service';
@@ -26,6 +27,7 @@ import { GatewayCommonService } from './services/gateway-common.service';
 import { GatewayRoomService } from './services/gateway-room.service';
 import { GatewayPaymentService } from './services/gateway-payment.service';
 import { NotificationProxyController } from './proxy/notification.proxy.controller';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -67,6 +69,11 @@ import { NotificationProxyController } from './proxy/notification.proxy.controll
     GatewayCommonService,
     GatewayRoomService,
     GatewayPaymentService,
+    // Global audit interceptor — captures all admin mutating operations
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

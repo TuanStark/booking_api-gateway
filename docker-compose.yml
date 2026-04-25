@@ -10,6 +10,7 @@ services:
       - "4000:4000"
     environment:
       PORT: ${PORT}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-booking_internal_secret_change_me}
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
       BUILDING_SERVICE_URL: ${BUILDING_SERVICE_URL}
